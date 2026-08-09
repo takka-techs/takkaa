@@ -1,0 +1,17 @@
+src/components/CashierLogin.tsx:63:      localStorage.setItem('active_cashier', JSON.stringify(cashier));
+src/components/Settings.tsx:243:      localStorage.setItem('takka_settings', JSON.stringify(settingsData));
+src/components/Settings.tsx:322:      localStorage.setItem('takka_settings', JSON.stringify(settingsData));
+src/contexts/BranchContext.tsx:86:            localStorage.setItem("takka_active_branch_id", targetBranch.id);
+src/contexts/BranchContext.tsx:143:            localStorage.setItem("takka_active_branch_id", targetBranch.id);
+src/contexts/BranchContext.tsx:153:            localStorage.setItem(
+src/contexts/BranchContext.tsx:185:      localStorage.setItem("takka_active_branch_id", branch.id);
+src/contexts/SettingsContext.tsx:142:    localStorage.setItem('takka_settings', JSON.stringify(updatedSettings));
+src/contexts/SettingsContext.tsx:285:          localStorage.setItem('takka_settings', JSON.stringify(newSettings));
+src/App.tsx:172:        localStorage.setItem("access_token", data.access_token);
+src/App.tsx:173:        localStorage.setItem("user_id", data.user.id);
+src/App.tsx:175:          localStorage.setItem("refresh_token", data.refresh_token);
+src/App.tsx:227:            localStorage.setItem("access_token", token);
+src/App.tsx:229:              localStorage.setItem("refresh_token", refreshData.refresh_token);
+src/App.tsx:254:        localStorage.setItem("active_cashier", JSON.stringify(cashier));
+src/App.tsx:1643:      localStorage.setItem("admin_active", "true");
+src/App.tsx:1646:      localStorage.setItem("active_cashier", JSON.stringify(data));

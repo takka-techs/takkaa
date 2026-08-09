@@ -1,0 +1,73 @@
+7-  Wrench, ArrowRightLeft, Trash2, Plus, Minus,
+8-  CreditCard, Wallet, Receipt, History, HelpCircle,
+9:  Pause, RotateCcw, Printer, Barcode, UserPlus,
+10-  ArrowUpRight, ArrowDownRight, Package, CheckCircle2,
+11-  X, ChevronDown, Filter, ShoppingBag, Users, Landmark, Truck,
+--
+17-import { useSettings } from '../contexts/SettingsContext';
+18-import { PrintReceiptTemplate } from './PrintReceiptTemplate';
+19:import { PrintBarcodeTemplate } from './PrintBarcodeTemplate';
+20:import { PrintBarcodeModal } from './PrintBarcodeModal';
+21-
+22-interface Product {
+--
+85-  // --- Printing Configuration ---
+86-  const receiptPrintRef = useRef<HTMLDivElement>(null);
+87:  const barcodePrintRef = useRef<HTMLDivElement>(null);
+88-  const [lastInvoiceData, setLastInvoiceData] = useState<any>(null);
+89:  const [barcodeData, setBarcodeData] = useState<any>(null);
+90:  const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
+91-
+92-  const executePrintReceipt = useReactToPrint({
+--
+96-  });
+97-
+98:  const barcodeWidth = settings?.barcodeWidth || '50mm';
+99:  const barcodeHeight = settings?.barcodeHeight || '30mm';
+100-
+101:  const executePrintBarcode = useReactToPrint({
+102:    contentRef: barcodePrintRef,
+103:    documentTitle: 'Barcode',
+104:    pageStyle: `@page { size: ${barcodeWidth} ${barcodeHeight}; margin: 0; } @media print { body { margin: 0; } }`,
+105-  });
+106-
+--
+118-  };
+119-
+120:  const printBarcodeAction = (productData?: any) => {
+121-    if(productData) {
+122:       setBarcodeData(productData);
+123-    }
+124-    
+--
+131-
+132-      if ((window as any).electron) {
+133:        (window as any).electron.printSilent({ type: 'barcode', data: productData || barcodeData });
+134-      } else {
+135:        executePrintBarcode();
+136-      }
+137-    }, 200);
+--
+220-      </button>
+221-      <button 
+222:        onClick={() => setIsBarcodeModalOpen(true)}
+223-        className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+224-      >
+--
+3022-                    <div className="space-y-2">
+3023-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ms-2 flex items-center gap-1">
+3024:                        <Barcode className="w-3 h-3" /> IMEI 1 *
+3025-                      </label>
+3026-                      <input 
+--
+3034-                    <div className="md:col-span-3 space-y-2">
+3035-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ms-2 flex items-center gap-1">
+3036:                        <Barcode className="w-3 h-3" /> IMEI 2 (اختياري)
+3037-                      </label>
+3038-                      <input 
+--
+3816-      </div>
+3817-
+3818:      <PrintBarcodeModal isOpen={isBarcodeModalOpen} onClose={() => setIsBarcodeModalOpen(false)} />
+3819-    </>
+3820-  );

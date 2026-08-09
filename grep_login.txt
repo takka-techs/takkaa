@@ -1,0 +1,101 @@
+149:  const handleLogin = async (e: React.FormEvent) => {
+150-    e.preventDefault();
+151-    setError("");
+152-    setIsLoading(true);
+153-
+154-    if (loginMode === "signup") {
+155-      try {
+156-        const response = await fetch(
+157-          "https://hoohxkrrndtfpwsrnpyr.supabase.co/auth/v1/signup",
+158-          {
+159-            method: "POST",
+160-            headers: {
+161-              "Content-Type": "application/json",
+162-              apikey: "sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa",
+163-            },
+164-            body: JSON.stringify({ email, password: adminPassword, data: { company_name: signupCompany, has_branches: signupHasBranches, full_name: 'مدير النظام' } }),
+165-          },
+166-        );
+167-
+168-        const data = await response.json();
+169-
+170-        if (!response.ok) {
+171-          throw new Error(
+172-            data.error_description ||
+173-              data.msg ||
+174-              "حدث خطأ أثناء إنشاء الحساب",
+175-          );
+176-        }
+177-        
+178-        // Save to local storage right away so ui updates
+179-        localStorage.setItem("takka_settings", JSON.stringify({ hasBranches: signupHasBranches, companyName: signupCompany }));
+180-
+181-        if (data.session) {
+182-           localStorage.setItem("access_token", data.session.access_token);
+183-           localStorage.setItem("user_id", data.user.id);
+184-           if (data.session.refresh_token)
+185-             localStorage.setItem("refresh_token", data.session.refresh_token);
+186-             
+187-           // Fetch the app_user that was automatically created by the trigger
+188-           let appUser = null;
+189-           try {
+190-             // small delay to let trigger finish
+191-             await new Promise(r => setTimeout(r, 1000));
+192-             const appUsersRes = await fetch(
+193-               `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/app_users?user_id=eq.${data.user.id}`,
+194-               {
+195-                 headers: {
+196-                   apikey: "sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa",
+197-                   Authorization: `Bearer ${data.session.access_token}`,
+198-                 },
+199-               }
+200-             );
+201-             if (appUsersRes.ok) {
+202-               const appUsersList = await appUsersRes.json();
+203-               if (appUsersList && appUsersList.length > 0) {
+204-                 appUser = appUsersList[0];
+205-               }
+206-             }
+207-           } catch (e) {
+208-             console.error("Could not fetch app_user for admin", e);
+209-           }
+210-           
+211-           onLogin("admin", appUser);
+212-        } else {
+213-           // Maybe email confirmation required
+214-           setError("تم إنشاء الحساب بنجاح! يرجي تسجيل الدخول");
+215-           setLoginMode("admin");
+216-        }
+217-      } catch (err: any) {
+218-        setError(err.message || "حدث خطأ أثناء الاتصال بالخادم");
+219-      } finally {
+220-        setIsLoading(false);
+221-      }
+222-    } else if (loginMode === "admin") {
+223-      try {
+224-        const response = await fetch(
+225-          "https://hoohxkrrndtfpwsrnpyr.supabase.co/auth/v1/token?grant_type=password",
+226-          {
+227-            method: "POST",
+228-            headers: {
+229-              "Content-Type": "application/json",
+230-              apikey: "sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa",
+231-            },
+232-            body: JSON.stringify({ email, password: adminPassword }),
+233-          },
+234-        );
+235-
+236-        const data = await response.json();
+237-
+238-        if (!response.ok) {
+239-          throw new Error(
+240-            data.error_description ||
+241-              data.msg ||
+242-              "تأكد من صحة البريد الإلكتروني وكلمة المرور",
+243-          );
+244-        }
+245-
+246-        localStorage.setItem("access_token", data.access_token);
+247-        localStorage.setItem("user_id", data.user.id);
+248-        if (data.refresh_token)
+249-          localStorage.setItem("refresh_token", data.refresh_token);

@@ -1,0 +1,480 @@
+src/components/SalesReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/SalesReport.tsx:import { motion } from 'motion/react';
+src/components/SalesReport.tsx:import { 
+src/components/SalesReport.tsx:import { format, subDays } from 'date-fns';
+src/components/SalesReport.tsx:import { ar } from 'date-fns/locale';
+src/components/SalesReport.tsx:import * as XLSX from 'xlsx';
+src/components/SalesReport.tsx:import { 
+src/components/Attendance.tsx:import React, { useState, useEffect, useMemo } from 'react';
+src/components/Attendance.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Attendance.tsx:import { 
+src/components/Attendance.tsx:import { differenceInMinutes, parseISO, parse } from 'date-fns';
+src/components/Leaves.tsx:import React, { useState, useEffect, useMemo } from 'react';
+src/components/Leaves.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Leaves.tsx:import { 
+src/components/Leaves.tsx:import { differenceInDays, parseISO } from 'date-fns';
+src/components/EmployeeProfileModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/EmployeeProfileModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/EmployeeProfileModal.tsx:import { 
+src/components/Archive.tsx:import React, { useState, useEffect } from 'react';
+src/components/Archive.tsx:import { motion } from 'motion/react';
+src/components/Archive.tsx:import { Search, Archive as ArchiveIcon, Database, HardDrive, Cpu, Loader2, ArrowRightLeft, PackageOpen, MoreHorizontal, FileText, Smartphone, RefreshCw, RotateCcw } from 'lucide-react';
+src/components/Archive.tsx:import { format } from 'date-fns';
+src/components/Archive.tsx:import { ar } from 'date-fns/locale';
+src/components/ShiftManagementModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/ShiftManagementModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ShiftManagementModal.tsx:import { X, Lock, Unlock, Loader2, DollarSign, Calculator } from 'lucide-react';
+src/components/SparePartPurchases.tsx:import React, { useState, useEffect } from 'react';
+src/components/SparePartPurchases.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/SparePartPurchases.tsx:import { 
+src/components/SparePartPurchases.tsx:import AddSparePartPurchaseModal from './AddSparePartPurchaseModal';
+src/components/SparePartPurchases.tsx:import AddSparePartQuantityModal from './AddSparePartQuantityModal';
+src/components/SparePartPurchases.tsx:import ReturnSparePartModal from './ReturnSparePartModal';
+src/components/SparePartPurchases.tsx:import SparePartDetailsModal from './SparePartDetailsModal';
+src/components/MoneyTransfersReportModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/MoneyTransfersReportModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/MoneyTransfersReportModal.tsx:import { X, Loader2, Download } from 'lucide-react';
+src/components/MoneyTransfersReportModal.tsx:import { toPng } from 'html-to-image';
+src/components/MoneyTransfersReportModal.tsx:import jsPDF from 'jspdf';
+src/components/Maintenance.tsx:import React, { useState, useEffect } from 'react';
+src/components/Maintenance.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Maintenance.tsx:import { 
+src/components/TransferItemModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/TransferItemModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/TransferItemModal.tsx:import { X, Search, Warehouse, ArrowRightLeft, Loader2, AlertCircle } from 'lucide-react';
+src/components/Employees.tsx:import React, { useState, useEffect } from 'react';
+src/components/Employees.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Employees.tsx:import { Plus, Users, Loader2, Edit, Trash2, AlertTriangle, X, Eye, Landmark, Wallet, Calendar, Clock, BarChart2, Search, ChevronDown } from 'lucide-react';
+src/components/Employees.tsx:import AddEmployeeModal from './AddEmployeeModal';
+src/components/Employees.tsx:import Salaries from './Salaries';
+src/components/Employees.tsx:import Loans from './Loans';
+src/components/Employees.tsx:import Leaves from './Leaves';
+src/components/Employees.tsx:import Attendance from './Attendance';
+src/components/Employees.tsx:import Reports from './Reports';
+src/components/Employees.tsx:import EmployeeProfileModal from './EmployeeProfileModal';
+src/components/DeleteDeviceModal.tsx:import React, { useState } from 'react';
+src/components/DeleteDeviceModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/DeleteDeviceModal.tsx:import { X, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+src/components/ReturnPurchaseModal.tsx:import React, { useState } from 'react';
+src/components/ReturnPurchaseModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ReturnPurchaseModal.tsx:import { 
+src/components/AddDeviceModal.tsx:import React, { useState } from 'react';
+src/components/AddDeviceModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddDeviceModal.tsx:import { 
+src/components/AddAccessoryModal.tsx:import React, { useState } from 'react';
+src/components/AddAccessoryModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddAccessoryModal.tsx:import { X, PackagePlus, Barcode as BarcodeIcon, Loader2 } from 'lucide-react';
+src/components/DeviceDetailsModal.tsx:import React, { useRef, useState } from 'react';
+src/components/DeviceDetailsModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/DeviceDetailsModal.tsx:import { 
+src/components/DeviceDetailsModal.tsx:import jsPDF from 'jspdf';
+src/components/DeviceDetailsModal.tsx:import { toPng } from 'html-to-image';
+src/components/ReturnAccessoryModal.tsx:import React, { useState } from 'react';
+src/components/ReturnAccessoryModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ReturnAccessoryModal.tsx:import { 
+src/components/GeneralSales.tsx:import React, { useState, useEffect } from 'react';
+src/components/GeneralSales.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/GeneralSales.tsx:import { 
+src/components/GeneralSales.tsx:import * as XLSX from 'xlsx';
+src/components/AddEmployeeModal.tsx:import React, { useState } from 'react';
+src/components/AddEmployeeModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddEmployeeModal.tsx:import { X, Save, Calendar, ChevronDown, Loader2 } from 'lucide-react';
+src/components/ExpensesReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/ExpensesReport.tsx:import { motion } from 'motion/react';
+src/components/ExpensesReport.tsx:import { 
+src/components/ExpensesReport.tsx:import { format, subDays, parseISO } from 'date-fns';
+src/components/ExpensesReport.tsx:import { ar } from 'date-fns/locale';
+src/components/ExpensesReport.tsx:import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+src/components/ExpensesReport.tsx:import * as XLSX from 'xlsx';
+src/components/Partners.tsx:import React, { useState, useEffect } from 'react';
+src/components/Partners.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Partners.tsx:import { 
+src/components/Partners.tsx:import * as XLSX from 'xlsx';
+src/components/AccessoryDetailsModal.tsx:import React, { useRef, useState } from 'react';
+src/components/AccessoryDetailsModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AccessoryDetailsModal.tsx:import { 
+src/components/AccessoryDetailsModal.tsx:import jsPDF from 'jspdf';
+src/components/AccessoryDetailsModal.tsx:import { toPng } from 'html-to-image';
+src/components/SalesReturnsReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/SalesReturnsReport.tsx:import { motion } from 'motion/react';
+src/components/SalesReturnsReport.tsx:import { 
+src/components/SalesReturnsReport.tsx:import { format, subDays } from 'date-fns';
+src/components/SalesReturnsReport.tsx:import { ar } from 'date-fns/locale';
+src/components/SalesReturnsReport.tsx:import * as XLSX from 'xlsx';
+src/components/SalesReturnsReport.tsx:import { 
+src/components/POS.tsx:import React, { useState, useEffect } from 'react';
+src/components/POS.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/POS.tsx:import { 
+src/components/POS.tsx:import ShiftManagementModal from './ShiftManagementModal';
+src/components/POS.tsx:import { printReceipt } from '../lib/printReceipt';
+src/components/AddSparePartModal.tsx:import React, { useState } from 'react';
+src/components/AddSparePartModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddSparePartModal.tsx:import { X, Wrench, Barcode as BarcodeIcon, Loader2 } from 'lucide-react';
+src/components/ComprehensiveReportModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/ComprehensiveReportModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ComprehensiveReportModal.tsx:import { X, Loader2, Download } from 'lucide-react';
+src/components/ComprehensiveReportModal.tsx:import { toPng } from 'html-to-image';
+src/components/ComprehensiveReportModal.tsx:import jsPDF from 'jspdf';
+src/components/EditAccessoryModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/EditAccessoryModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/EditAccessoryModal.tsx:import { X, Barcode as BarcodeIcon, Loader2 } from 'lucide-react';
+src/components/ManageWalletsModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/ManageWalletsModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ManageWalletsModal.tsx:import { X, Plus, Edit, Wallet, Smartphone, Landmark, Trash2, Settings, Loader2 } from 'lucide-react';
+src/components/LowStockReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/LowStockReport.tsx:import { motion } from 'motion/react';
+src/components/LowStockReport.tsx:import { 
+src/components/LowStockReport.tsx:import { format } from 'date-fns';
+src/components/LowStockReport.tsx:import { ar } from 'date-fns/locale';
+src/components/LowStockReport.tsx:import * as XLSX from 'xlsx';
+src/components/AddSparePartPurchaseModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/AddSparePartPurchaseModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddSparePartPurchaseModal.tsx:import { X, Loader2 } from 'lucide-react';
+src/components/MonthlyReportModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/MonthlyReportModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/MonthlyReportModal.tsx:import { X, TrendingUp, TrendingDown, Clock, Loader2, Download } from 'lucide-react';
+src/components/MonthlyReportModal.tsx:import { toPng } from 'html-to-image';
+src/components/MonthlyReportModal.tsx:import jsPDF from 'jspdf';
+src/components/TransfersReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/TransfersReport.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/TransfersReport.tsx:import { 
+src/components/TransfersReport.tsx:import { format, subDays } from 'date-fns';
+src/components/TransfersReport.tsx:import { ar } from 'date-fns/locale';
+src/components/TransfersReport.tsx:import * as XLSX from 'xlsx';
+src/components/Accessories.tsx:import React, { useState, useEffect } from 'react';
+src/components/Accessories.tsx:import { motion } from 'motion/react';
+src/components/Accessories.tsx:import { 
+src/components/Accessories.tsx:import * as XLSX from 'xlsx';
+src/components/Accessories.tsx:import AddAccessoryModal from './AddAccessoryModal';
+src/components/Accessories.tsx:import AddAccessoryQuantityModal from './AddAccessoryQuantityModal';
+src/components/Accessories.tsx:import ViewAccessoryModal from './ViewAccessoryModal';
+src/components/Accessories.tsx:import EditAccessoryModal from './EditAccessoryModal';
+src/components/Accessories.tsx:import DeleteAccessoryModal from './DeleteAccessoryModal';
+src/components/Accessories.tsx:import ImportAccessoriesExcelModal from './ImportAccessoriesExcelModal';
+src/components/Accessories.tsx:import TransferItemModal from './TransferItemModal';
+src/components/CashierLogin.tsx:import React, { useState } from 'react';
+src/components/CashierLogin.tsx:import { motion } from 'motion/react';
+src/components/CashierLogin.tsx:import { Lock, User, KeyRound, Loader2, ArrowRight } from 'lucide-react';
+src/components/CashierLogin.tsx:import { useSettings } from '../contexts/SettingsContext';
+src/components/Customers.tsx:import React, { useState, useEffect, useRef } from 'react';
+src/components/Customers.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Customers.tsx:import * as XLSX from 'xlsx';
+src/components/Customers.tsx:import { 
+src/components/DailyReport.tsx:import React, { useState, useEffect, useRef } from 'react';
+src/components/DailyReport.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/DailyReport.tsx:import { format, parseISO, addDays, subDays } from 'date-fns';
+src/components/DailyReport.tsx:import { ar } from 'date-fns/locale';
+src/components/DailyReport.tsx:import { jsPDF } from 'jspdf';
+src/components/DailyReport.tsx:import { toPng } from 'html-to-image';
+src/components/DailyReport.tsx:import { 
+src/components/SelectPurchaseReturnModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/SelectPurchaseReturnModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/SelectPurchaseReturnModal.tsx:import { 
+src/components/ReturnSparePartModal.tsx:import React, { useState } from 'react';
+src/components/ReturnSparePartModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ReturnSparePartModal.tsx:import { X, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
+src/components/PnLReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/PnLReport.tsx:import { motion } from 'motion/react';
+src/components/PnLReport.tsx:import { 
+src/components/PnLReport.tsx:import { format, parseISO, subDays, startOfDay, endOfDay } from 'date-fns';
+src/components/PnLReport.tsx:import { ar } from 'date-fns/locale';
+src/components/PnLReport.tsx:import { 
+src/components/Warehouses.tsx:import React, { useState, useEffect } from 'react';
+src/components/Warehouses.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Warehouses.tsx:import { 
+src/components/Warehouses.tsx:import * as XLSX from 'xlsx';
+src/components/Warehouses.tsx:import ImportExcelModal from './ImportExcelModal';
+src/components/Blacklist.tsx:import React, { useState, useEffect } from 'react';
+src/components/Blacklist.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Blacklist.tsx:import { 
+src/components/Blacklist.tsx:import { format } from 'date-fns';
+src/components/Suppliers.tsx:import React, { useState, useEffect, useRef } from 'react';
+src/components/Suppliers.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Suppliers.tsx:import * as XLSX from 'xlsx';
+src/components/Suppliers.tsx:import { 
+src/components/AccessorySales.tsx:import React, { useState, useEffect } from 'react';
+src/components/AccessorySales.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AccessorySales.tsx:import { 
+src/components/AccessorySales.tsx:import * as XLSX from 'xlsx';
+src/components/DailyReportModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/DailyReportModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/DailyReportModal.tsx:import { X, TrendingUp, TrendingDown, Clock, Loader2, Download } from 'lucide-react';
+src/components/DailyReportModal.tsx:import { toPng } from 'html-to-image';
+src/components/DailyReportModal.tsx:import jsPDF from 'jspdf';
+src/components/DeleteAccessoryModal.tsx:import React, { useState } from 'react';
+src/components/DeleteAccessoryModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/DeleteAccessoryModal.tsx:import { X, Loader2 } from 'lucide-react';
+src/components/PartnersReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/PartnersReport.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/PartnersReport.tsx:import { 
+src/components/PartnersReport.tsx:import { format, parseISO } from 'date-fns';
+src/components/PartnersReport.tsx:import { ar } from 'date-fns/locale';
+src/components/PartnersReport.tsx:import { 
+src/components/PartnersReport.tsx:import * as XLSX from 'xlsx';
+src/components/Settings.tsx:import React, { useState, useEffect } from 'react';
+src/components/Settings.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Settings.tsx:import { useSettings } from '../contexts/SettingsContext';
+src/components/Settings.tsx:import { 
+src/components/Settings.tsx:import ManageWalletsModal from './ManageWalletsModal';
+src/components/AddMultipleDevicesModal.tsx:import React, { useState } from 'react';
+src/components/AddMultipleDevicesModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddMultipleDevicesModal.tsx:import { 
+src/components/Users.tsx:import React, { useState, useEffect } from 'react';
+src/components/Users.tsx:import { motion } from 'motion/react';
+src/components/Users.tsx:import { Search, ChevronDown, Lock, Users, Activity, LogOut, Plus, Pause, Edit, Key, Loader2, Play } from 'lucide-react';
+src/components/Users.tsx:import AddUserModal from './AddUserModal';
+src/components/CapitalReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/CapitalReport.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/CapitalReport.tsx:import { 
+src/components/CapitalReport.tsx:import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+src/components/CapitalReport.tsx:import { format } from 'date-fns';
+src/components/CapitalReport.tsx:import { ar } from 'date-fns/locale';
+src/components/CapitalReport.tsx:import * as XLSX from 'xlsx';
+src/components/Reminders.tsx:import React, { useState, useEffect } from 'react';
+src/components/Reminders.tsx:import { 
+src/components/Reminders.tsx:import { format } from 'date-fns';
+src/components/Reminders.tsx:import { ar } from 'date-fns/locale';
+src/components/CustomersSuppliersReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/CustomersSuppliersReport.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/CustomersSuppliersReport.tsx:import { 
+src/components/CustomersSuppliersReport.tsx:import { format, subDays, startOfDay } from 'date-fns';
+src/components/CustomersSuppliersReport.tsx:import { ar } from 'date-fns/locale';
+src/components/CustomersSuppliersReport.tsx:import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+src/components/CustomersSuppliersReport.tsx:import * as XLSX from 'xlsx';
+src/components/GeneralPurchases.tsx:import React, { useState, useEffect } from 'react';
+src/components/GeneralPurchases.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/GeneralPurchases.tsx:import { 
+src/components/GeneralPurchases.tsx:import * as XLSX from 'xlsx';
+src/components/ViewDeviceModal.tsx:import React from 'react';
+src/components/ViewDeviceModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ViewDeviceModal.tsx:import { X, Smartphone, Hash, Calendar, DollarSign, Info, Tag, Box, Battery, Printer } from 'lucide-react';
+src/components/DashboardReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/DashboardReport.tsx:import { motion } from 'motion/react';
+src/components/DashboardReport.tsx:import { 
+src/components/DashboardReport.tsx:import { format, subDays } from 'date-fns';
+src/components/DashboardReport.tsx:import { ar } from 'date-fns/locale';
+src/components/DashboardReport.tsx:import { 
+src/components/DeviceSales.tsx:import React, { useState, useEffect } from 'react';
+src/components/DeviceSales.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/DeviceSales.tsx:import { 
+src/components/DeviceSales.tsx:import * as XLSX from 'xlsx';
+src/components/UnifyPricesModal.tsx:import React, { useState, useMemo } from 'react';
+src/components/UnifyPricesModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/UnifyPricesModal.tsx:import { X, DollarSign, Calculator, AlertCircle, CheckCircle2, Loader2, Smartphone, TrendingUp, Settings } from 'lucide-react';
+src/components/ImportAccessoriesExcelModal.tsx:import React, { useRef, useState } from 'react';
+src/components/ImportAccessoriesExcelModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ImportAccessoriesExcelModal.tsx:import { X, Upload, FileSpreadsheet, Loader2, AlertCircle, FileText } from 'lucide-react';
+src/components/ImportAccessoriesExcelModal.tsx:import * as XLSX from 'xlsx';
+src/components/Devices.tsx:import React, { useState, useEffect, useRef } from 'react';
+src/components/Devices.tsx:import { motion } from 'motion/react';
+src/components/Devices.tsx:import * as XLSX from 'xlsx';
+src/components/Devices.tsx:import { 
+src/components/Devices.tsx:import AddDeviceModal from './AddDeviceModal';
+src/components/Devices.tsx:import AddMultipleDevicesModal from './AddMultipleDevicesModal';
+src/components/Devices.tsx:import ImportExcelModal from './ImportExcelModal';
+src/components/Devices.tsx:import ViewDeviceModal from './ViewDeviceModal';
+src/components/Devices.tsx:import EditDeviceModal from './EditDeviceModal';
+src/components/Devices.tsx:import DeleteDeviceModal from './DeleteDeviceModal';
+src/components/Devices.tsx:import SellDeviceModal from './SellDeviceModal';
+src/components/Devices.tsx:import UnifyPricesModal from './UnifyPricesModal';
+src/components/Devices.tsx:import TransferItemModal from './TransferItemModal';
+src/components/DashboardHome.tsx:import React, { useState, useEffect } from 'react';
+src/components/DashboardHome.tsx:import { 
+src/components/ImportSparePartsModal.tsx:import React, { useRef, useState } from 'react';
+src/components/ImportSparePartsModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ImportSparePartsModal.tsx:import { X, Upload, Download, FileSpreadsheet, Loader2, AlertCircle, FileText } from 'lucide-react';
+src/components/ImportSparePartsModal.tsx:import * as XLSX from 'xlsx';
+src/components/SparePartDetailsModal.tsx:import React from 'react';
+src/components/SparePartDetailsModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/SparePartDetailsModal.tsx:import { X, Calendar, User, Package, DollarSign, Target, AlignRight, Tag, Hash } from 'lucide-react';
+src/components/AddAccessoryQuantityModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/AddAccessoryQuantityModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddAccessoryQuantityModal.tsx:import { X, Loader2, PackagePlus } from 'lucide-react';
+src/components/ShiftClosuresReportModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/ShiftClosuresReportModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ShiftClosuresReportModal.tsx:import { X, Lock, FileText, CheckCircle2, Loader2, Download } from 'lucide-react';
+src/components/ShiftClosuresReportModal.tsx:import { toPng } from 'html-to-image';
+src/components/ShiftClosuresReportModal.tsx:import jsPDF from 'jspdf';
+src/components/AccessoryReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/AccessoryReport.tsx:import { motion } from 'motion/react';
+src/components/AccessoryReport.tsx:import { 
+src/components/AccessoryReport.tsx:import { format, subDays } from 'date-fns';
+src/components/AccessoryReport.tsx:import { ar } from 'date-fns/locale';
+src/components/AccessoryReport.tsx:import * as XLSX from 'xlsx';
+src/components/AccessoryReport.tsx:import { 
+src/components/AccessoryPurchases.tsx:import React, { useState, useEffect } from 'react';
+src/components/AccessoryPurchases.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AccessoryPurchases.tsx:import { 
+src/components/AccessoryPurchases.tsx:import AddAccessoryModal from './AddAccessoryModal';
+src/components/AccessoryPurchases.tsx:import AddAccessoryQuantityModal from './AddAccessoryQuantityModal';
+src/components/AccessoryPurchases.tsx:import ReturnAccessoryModal from './ReturnAccessoryModal';
+src/components/AccessoryPurchases.tsx:import AccessoryDetailsModal from './AccessoryDetailsModal';
+src/components/DeviceReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/DeviceReport.tsx:import { motion } from 'motion/react';
+src/components/DeviceReport.tsx:import { 
+src/components/DeviceReport.tsx:import { format } from 'date-fns';
+src/components/DeviceReport.tsx:import { ar } from 'date-fns/locale';
+src/components/DeviceReport.tsx:import * as XLSX from 'xlsx';
+src/components/DeviceReport.tsx:import { 
+src/components/Loans.tsx:import React, { useState, useEffect } from 'react';
+src/components/Loans.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Loans.tsx:import * as XLSX from 'xlsx';
+src/components/Loans.tsx:import { 
+src/components/Reports.tsx:import React, { useState } from 'react';
+src/components/Reports.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Reports.tsx:import { 
+src/components/Reports.tsx:import DailyReport from './DailyReport';
+src/components/Reports.tsx:import DashboardReport from './DashboardReport';
+src/components/Reports.tsx:import PnLReport from './PnLReport';
+src/components/Reports.tsx:import DeviceReport from './DeviceReport';
+src/components/Reports.tsx:import AccessoryReport from './AccessoryReport';
+src/components/Reports.tsx:import SparePartReport from './SparePartReport';
+src/components/Reports.tsx:import MaintenanceReport from './MaintenanceReport';
+src/components/Reports.tsx:import SalesReport from './SalesReport';
+src/components/Reports.tsx:import SalesReturnsReport from './SalesReturnsReport';
+src/components/Reports.tsx:import InvoicesReport from './InvoicesReport';
+src/components/Reports.tsx:import TransfersReport from './TransfersReport';
+src/components/Reports.tsx:import PartnersReport from './PartnersReport';
+src/components/Reports.tsx:import CashflowReport from './CashflowReport';
+src/components/Reports.tsx:import CustomersSuppliersReport from './CustomersSuppliersReport';
+src/components/Reports.tsx:import CapitalReport from './CapitalReport';
+src/components/Reports.tsx:import ExpensesReport from './ExpensesReport';
+src/components/Reports.tsx:import LowStockReport from './LowStockReport';
+src/components/SparePartSales.tsx:import React, { useState, useEffect } from 'react';
+src/components/SparePartSales.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/SparePartSales.tsx:import { 
+src/components/SparePartSales.tsx:import * as XLSX from 'xlsx';
+src/components/Treasury.tsx:import React, { useState, useEffect } from 'react';
+src/components/Treasury.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Treasury.tsx:import { 
+src/components/Treasury.tsx:import { 
+src/components/Treasury.tsx:import ComprehensiveReportModal from './ComprehensiveReportModal';
+src/components/Treasury.tsx:import MoneyTransfersReportModal from './MoneyTransfersReportModal';
+src/components/Treasury.tsx:import DailyReportModal from './DailyReportModal';
+src/components/Treasury.tsx:import MonthlyReportModal from './MonthlyReportModal';
+src/components/Treasury.tsx:import ShiftClosuresReportModal from './ShiftClosuresReportModal';
+src/components/Treasury.tsx:import PeriodComparisonModal from './PeriodComparisonModal';
+src/components/Treasury.tsx:import ShiftManagementModal from './ShiftManagementModal';
+src/components/DevicePurchases.tsx:import React, { useState, useEffect } from 'react';
+src/components/DevicePurchases.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/DevicePurchases.tsx:import { 
+src/components/DevicePurchases.tsx:import AddDeviceModal from './AddDeviceModal';
+src/components/DevicePurchases.tsx:import AddMultipleDevicesModal from './AddMultipleDevicesModal';
+src/components/DevicePurchases.tsx:import SelectPurchaseReturnModal from './SelectPurchaseReturnModal';
+src/components/DevicePurchases.tsx:import ReturnPurchaseModal from './ReturnPurchaseModal';
+src/components/DevicePurchases.tsx:import DeviceDetailsModal from './DeviceDetailsModal';
+src/components/MaintenanceReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/MaintenanceReport.tsx:import { motion } from 'motion/react';
+src/components/MaintenanceReport.tsx:import { 
+src/components/MaintenanceReport.tsx:import { format, subDays } from 'date-fns';
+src/components/MaintenanceReport.tsx:import { ar } from 'date-fns/locale';
+src/components/MaintenanceReport.tsx:import * as XLSX from 'xlsx';
+src/components/MaintenanceReport.tsx:import { 
+src/components/AddSparePartQuantityModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/AddSparePartQuantityModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddSparePartQuantityModal.tsx:import { X, Loader2 } from 'lucide-react';
+src/components/Salaries.tsx:import React, { useState, useEffect } from 'react';
+src/components/Salaries.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Salaries.tsx:import * as XLSX from 'xlsx';
+src/components/Salaries.tsx:import { 
+src/components/PeriodComparisonModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/PeriodComparisonModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/PeriodComparisonModal.tsx:import { X, TrendingUp, TrendingDown, Minus, Loader2, Download } from 'lucide-react';
+src/components/PeriodComparisonModal.tsx:import { toPng } from 'html-to-image';
+src/components/PeriodComparisonModal.tsx:import jsPDF from 'jspdf';
+src/components/AddUserModal.tsx:import React, { useState } from 'react';
+src/components/AddUserModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/AddUserModal.tsx:import { X, Save, RotateCcw, ChevronDown, Check, Loader2 } from 'lucide-react';
+src/components/GeneralAccounts.tsx:import React, { useState, useEffect } from 'react';
+src/components/GeneralAccounts.tsx:import { motion } from 'motion/react';
+src/components/GeneralAccounts.tsx:import { 
+src/components/GeneralAccounts.tsx:import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+src/components/SellDeviceModal.tsx:import React, { useState } from 'react';
+src/components/SellDeviceModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/SellDeviceModal.tsx:import { X, DollarSign, ShoppingCart, Zap, Loader2 } from 'lucide-react';
+src/components/ViewAccessoryModal.tsx:import React from 'react';
+src/components/ViewAccessoryModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/ViewAccessoryModal.tsx:import { X, PackageSearch, Tag, Barcode, DollarSign, Layers, Calendar, AlertCircle, Building2, Activity } from 'lucide-react';
+src/components/IMEITracker.tsx:import React, { useState, useEffect } from 'react';
+src/components/IMEITracker.tsx:import { motion } from 'motion/react';
+src/components/IMEITracker.tsx:import { Search, History, AlertTriangle, Monitor, Wrench, Smartphone, RefreshCcw, Package } from 'lucide-react';
+src/components/IMEITracker.tsx:import { format } from 'date-fns';
+src/components/InvoicesReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/InvoicesReport.tsx:import { motion } from 'motion/react';
+src/components/InvoicesReport.tsx:import { 
+src/components/InvoicesReport.tsx:import { format, subDays } from 'date-fns';
+src/components/InvoicesReport.tsx:import { ar } from 'date-fns/locale';
+src/components/InvoicesReport.tsx:import { AnimatePresence } from 'motion/react';
+src/components/InvoicesReport.tsx:import * as XLSX from 'xlsx';
+src/components/InvoicesReport.tsx:import { printReceipt } from '../lib/printReceipt';
+src/components/SpareParts.tsx:import React, { useState, useEffect } from 'react';
+src/components/SpareParts.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/SpareParts.tsx:import { 
+src/components/SpareParts.tsx:import * as XLSX from 'xlsx';
+src/components/SpareParts.tsx:import ImportSparePartsModal from './ImportSparePartsModal';
+src/components/SpareParts.tsx:import TransferItemModal from './TransferItemModal';
+src/components/SpareParts.tsx:import { ArrowRightLeft } from 'lucide-react';
+src/components/SparePartReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/SparePartReport.tsx:import { motion } from 'motion/react';
+src/components/SparePartReport.tsx:import { 
+src/components/SparePartReport.tsx:import { format } from 'date-fns';
+src/components/SparePartReport.tsx:import { ar } from 'date-fns/locale';
+src/components/SparePartReport.tsx:import * as XLSX from 'xlsx';
+src/components/SparePartReport.tsx:import { 
+src/components/EditDeviceModal.tsx:import React, { useState, useEffect } from 'react';
+src/components/EditDeviceModal.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/EditDeviceModal.tsx:import { 
+src/components/CashflowReport.tsx:import React, { useState, useEffect } from 'react';
+src/components/CashflowReport.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/CashflowReport.tsx:import { 
+src/components/CashflowReport.tsx:import { format, subDays, startOfDay } from 'date-fns';
+src/components/CashflowReport.tsx:import { ar } from 'date-fns/locale';
+src/components/CashflowReport.tsx:import { 
+src/components/CashflowReport.tsx:import * as XLSX from 'xlsx';
+src/components/Inventory.tsx:import React, { useState, useEffect } from 'react';
+src/components/Inventory.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/components/Inventory.tsx:import { 
+src/components/Inventory.tsx:import { format } from 'date-fns';
+src/components/Inventory.tsx:import { ar } from 'date-fns/locale';
+src/contexts/SettingsContext.tsx:import React, { createContext, useContext, useState, useEffect } from 'react';
+src/App.tsx:import { format } from 'date-fns';
+src/App.tsx:import { ar } from 'date-fns/locale';
+src/App.tsx:import React, { useState, useEffect } from 'react';
+src/App.tsx:import { motion, AnimatePresence } from 'motion/react';
+src/App.tsx:import { 
+src/App.tsx:import Maintenance from './components/Maintenance';
+src/App.tsx:import Devices from './components/Devices';
+src/App.tsx:import Warehouses from './components/Warehouses';
+src/App.tsx:import Accessories from './components/Accessories';
+src/App.tsx:import SpareParts from './components/SpareParts';
+src/App.tsx:import GeneralSales from './components/GeneralSales';
+src/App.tsx:import DeviceSales from './components/DeviceSales';
+src/App.tsx:import AccessorySales from './components/AccessorySales';
+src/App.tsx:import SparePartSales from './components/SparePartSales';
+src/App.tsx:import GeneralPurchases from './components/GeneralPurchases';
+src/App.tsx:import DevicePurchases from './components/DevicePurchases';
+src/App.tsx:import AccessoryPurchases from './components/AccessoryPurchases';
+src/App.tsx:import SparePartPurchases from './components/SparePartPurchases';
+src/App.tsx:import POS from './components/POS';
+src/App.tsx:import Customers from './components/Customers';
+src/App.tsx:import Suppliers from './components/Suppliers';
+src/App.tsx:import Employees from './components/Employees';
+src/App.tsx:import UsersPage from './components/Users';
+src/App.tsx:import Salaries from './components/Salaries';
+src/App.tsx:import Reports from './components/Reports';
+src/App.tsx:import GeneralAccounts from './components/GeneralAccounts';
+src/App.tsx:import Partners from './components/Partners';
+src/App.tsx:import Treasury from './components/Treasury';
+src/App.tsx:import Reminders from './components/Reminders';
+src/App.tsx:import Inventory from './components/Inventory';
+src/App.tsx:import DashboardHome from './components/DashboardHome';
+src/App.tsx:import IMEITracker from './components/IMEITracker';
+src/App.tsx:import Blacklist from './components/Blacklist';
+src/App.tsx:import ArchivePage from './components/Archive';
+src/App.tsx:import SettingsPage from './components/Settings';
+src/App.tsx:import { useSettings } from './contexts/SettingsContext';
+src/main.tsx:import {StrictMode} from 'react';
+src/main.tsx:import {createRoot} from 'react-dom/client';
+src/main.tsx:import App from './App.tsx';
+src/main.tsx:import { SettingsProvider } from './contexts/SettingsContext';
+src/main.tsx:import './index.css';

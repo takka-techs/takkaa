@@ -1,0 +1,27 @@
+src/components/AddEmployeeModal.tsx:114:      owner_id: ownerId,
+src/components/AddEmployeeModal.tsx:128:        ? `${SUPABASE_URL}/rest/v1/employees?id=eq.${employee.id}&owner_id=eq.${ownerId}`
+src/components/Attendance.tsx:53:      const empRes = await fetch(`${SUPABASE_URL}/rest/v1/employees?select=id,full_name&owner_id=eq.${userId}&order=created_at.desc`, {
+src/components/Attendance.tsx:60:      const attRes = await fetch(`${SUPABASE_URL}/rest/v1/attendance?select=*,employees(full_name)&owner_id=eq.${userId}&order=date.desc`, {
+src/components/Attendance.tsx:180:          owner_id: userId,
+src/components/Attendance.tsx:193:              ? `${SUPABASE_URL}/rest/v1/attendance?id=eq.${editingId}&owner_id=eq.${userId}`
+src/components/Attendance.tsx:228:          const res = await fetch(`${SUPABASE_URL}/rest/v1/attendance?id=eq.${recordToDelete.id}&owner_id=eq.${userId}`, {
+src/components/Employees.tsx:46:      const response = await fetch(`${SUPABASE_URL}/rest/v1/employees?select=*&owner_id=eq.${ownerId}&order=created_at.desc`, {
+src/components/Leaves.tsx:41:      const empRes = await fetch(`${SUPABASE_URL}/rest/v1/employees?select=id,full_name,vacation_balance&owner_id=eq.${userId}&order=created_at.desc`, {
+src/components/Leaves.tsx:48:      const leavesRes = await fetch(`${SUPABASE_URL}/rest/v1/employee_leaves?select=*,employees(full_name)&owner_id=eq.${userId}&order=created_at.desc`, {
+src/components/Leaves.tsx:111:          owner_id: userId,
+src/components/Leaves.tsx:137:                  await fetch(`${SUPABASE_URL}/rest/v1/employees?id=eq.${formData.employee_id}&owner_id=eq.${userId}`, {
+src/components/Leaves.tsx:176:          const res = await fetch(`${SUPABASE_URL}/rest/v1/employee_leaves?id=eq.${leaveToDelete.id}&owner_id=eq.${userId}`, {
+src/components/Leaves.tsx:191:                      await fetch(`${SUPABASE_URL}/rest/v1/employees?id=eq.${leaveToDelete.employee_id}&owner_id=eq.${userId}`, {
+src/components/Loans.tsx:43:      const empRes = await fetch(`${SUPABASE_URL}/rest/v1/employees?select=id,full_name&owner_id=eq.${userId}&order=created_at.desc`, {
+src/components/Loans.tsx:63:      const loansRes = await fetch(`${SUPABASE_URL}/rest/v1/employee_loans?select=*,employees(full_name)&owner_id=eq.${userId}&order=created_at.desc`, {
+src/components/Loans.tsx:115:          owner_id: userId,
+src/components/Maintenance.tsx:2862:          const response = await fetch(`${SUPABASE_URL}/rest/v1/employees?select=*&owner_id=eq.${userId}&order=created_at.desc`, {
+src/components/Maintenance.tsx:2986:                const walletsRes = await fetch(`${SUPABASE_URL}/rest/v1/wallets?type=eq.cash&is_default=eq.true&is_active=eq.true&owner_id=eq.${userId}${branchQuery}&limit=1`, {
+src/components/Maintenance.tsx:2993:                   const anyCashRes = await fetch(`${SUPABASE_URL}/rest/v1/wallets?type=eq.cash&is_active=eq.true&owner_id=eq.${userId}${branchQuery}&limit=1`, {
+src/components/Partners.tsx:220:      salesData = salesData.filter((item: any) => item.Sales_Invoices?.user_id === userId || item.Sales_Invoices?.owner_id === userId || item.Sales_Invoices?.created_by === userId);
+src/components/Partners.tsx:223:      const salariesRes = await fetch(`${baseUrl}/salary_payments?owner_id=eq.${userId}&month=eq.${month}&year=eq.${year}`, { headers });
+src/components/Salaries.tsx:45:      const empRes = await fetch(`${SUPABASE_URL}/rest/v1/employees?select=*&owner_id=eq.${userId}&order=created_at.desc`, {
+src/components/Salaries.tsx:53:      const payRes = await fetch(`${SUPABASE_URL}/rest/v1/salary_payments?select=*&owner_id=eq.${userId}&month=eq.${selectedMonth}&year=eq.${selectedYear}`, {
+src/components/Salaries.tsx:61:      const loansRes = await fetch(`${SUPABASE_URL}/rest/v1/employee_loans?select=*&owner_id=eq.${userId}&status=eq.نشط`, {
+src/components/Salaries.tsx:140:        owner_id: userId,
+src/components/Salaries.tsx:173:                   await fetch(`${SUPABASE_URL}/rest/v1/employee_loans?id=eq.${loan.id}&owner_id=eq.${userId}`, {
