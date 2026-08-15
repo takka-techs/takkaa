@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useReactToPrint } from 'react-to-print';
 import { useBranch } from '../contexts/BranchContext';
@@ -976,6 +976,13 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
   const [manualStatus, setManualStatus] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
+  const [isAddPartModalOpen, setIsAddPartModalOpen] = useState(false);
+  const [directPartName, setDirectPartName] = useState('');
+  const [directPartCost, setDirectPartCost] = useState('');
+  const [directPartPrice, setDirectPartPrice] = useState('');
+  const [directPartQty, setDirectPartQty] = useState('1');
+  const [directPartWalletId, setDirectPartWalletId] = useState('');
+
   const actCashierCheck = JSON.parse(localStorage.getItem('active_cashier') || '{}');
   const roleLevelCheck = actCashierCheck?.role_level || 3;
   const isOwnerActCheck = localStorage.getItem('admin_active') === 'true' || roleLevelCheck === 1;
@@ -994,7 +1001,6 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
   const [availableParts, setAvailableParts] = useState<any[]>([]);
   const [searchPart, setSearchPart] = useState('');
   const [isPartDropdownOpen, setIsPartDropdownOpen] = useState(false);
-  const [isAddPartModalOpen, setIsAddPartModalOpen] = useState(false);
   const [partQuantity, setPartQuantity] = useState('1');
   const [selectedPart, setSelectedPart] = useState<any | null>(null);
 
@@ -1028,6 +1034,91 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
   // Cost edit state
   const [isEditingCost, setIsEditingCost] = useState(false);
   const [customMaintenanceCost, setCustomMaintenanceCost] = useState('');
+
+  const handleAddDirectPart = async () => {
+    if (!directPartName || !directPartPrice) return;
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const tenantId = localStorage.getItem('tenant_id') || localStorage.getItem('user_id');
+
+      const partSku = 'DIR-' + Date.now().toString().slice(-6);
+      const newSparePart = {
+        name: directPartName,
+        sku: partSku,
+        quantity: 0,
+        sell_price: Number(directPartPrice),
+        cost_price: Number(directPartCost),
+        category: 'صيانة مباشرة',
+        barcode: partSku,
+        barcode_type: 'CODE128',
+        min_quantity: 1,
+        tax: 0,
+        supplier: 'صيانة مباشرة',
+        entry_type: 'purchase',
+        status: 'active',
+        user_id: tenantId,
+        tenant_id: tenantId
+      };
+
+      const partRes = await fetch(`${SUPABASE_URL}/rest/v1/spare_parts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': API_KEY,
+          'Authorization': `Bearer ${token}`,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(newSparePart)
+      });
+
+      let realPartId = 'direct-' + Date.now();
+      if (partRes.ok) {
+        const insertedPart = await partRes.json();
+        if (insertedPart && insertedPart.length > 0) {
+          realPartId = insertedPart[0].id;
+        }
+      }
+
+      const newPartReserved = {
+        id: realPartId,
+        name: directPartName,
+        sku: partSku,
+        quantity: Number(directPartQty),
+        price: Number(directPartPrice),
+        cost: Number(directPartCost),
+        total: Number(directPartPrice) * Number(directPartQty),
+        date: new Date().toISOString(),
+        status: 'محجوز (مباشر)'
+      };
+      const newRepairParts = [...repairParts, newPartReserved];
+
+      let finalNotes = repair.notes || '';
+      let cleanText = finalNotes.split('\n===')[0];
+      cleanText = cleanText.split('\n').filter((l: string) => !l.includes('كلمة المرور') && !l.includes('مکان الجهاز:') && !l.includes('مكان الجهاز:')).join('\n');
+      if (devicePassword) cleanText += (cleanText ? '\n' : '') + `🔒 كلمة المرور ${devicePassword}`;
+      if (deviceLocation) cleanText += (cleanText ? '\n' : '') + `📍 مكان الجهاز: ${deviceLocation}`;
+      finalNotes = cleanText;
+      finalNotes = updateSection(finalNotes, 'PARTS', newRepairParts);
+      finalNotes = updateSection(finalNotes, 'DISCOUNT', { type: discountType, value: discountValue });
+      finalNotes = updateSection(finalNotes, 'PAYMENTS', paymentsList);
+
+      await fetch(`${SUPABASE_URL}/rest/v1/Repairs?id=eq.${repair.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'apikey': API_KEY, 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ notes: finalNotes })
+      });
+
+      if (directPartWalletId) {
+        await processTreasuryTransaction(Number(directPartWalletId), Number(directPartCost) * Number(directPartQty), 'out', 'مشتريات قطع غيار صيانة', `شراء قطعة مباشرة للصيانة: ${directPartName} - تذكرة #${repair.id}`, repair.receiving_branch_id || repair.branch_id || null);
+      }
+
+      logToCRM(repair.id, `شراء وإضافة قطعة مباشرة: ${directPartName}`);
+      setRepairParts(newRepairParts);
+      setIsAddPartModalOpen(false);
+      await onSuccess();
+    } catch (e) { console.error(e); } finally { setIsLoading(false); }
+  };
 
   const handleUpdateCost = async (previousPartsSum: number) => {
     if (!customMaintenanceCost || isNaN(Number(customMaintenanceCost))) return;
@@ -1317,7 +1408,7 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
       ];
 
       // If it's cancelled (not damaged), we restock it
-      if (!isDamaged && rp.id) {
+      if (!isDamaged && rp.id && !String(rp.id).startsWith('direct-')) {
         // We need to fetch current quantity first to be safe, but since Supabase doesn't have native increment over API easily without RPC, 
         // we assume we can fetch it or just use an RPC if exists. For now we will fetch then update.
         const partRes = await fetch(`${SUPABASE_URL}/rest/v1/spare_parts?id=eq.${rp.id}&select=quantity`, {
@@ -2079,7 +2170,7 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
             selectedWalletId ? Number(selectedWalletId) : null,
             amount,
             'in',
-            'إيراد صيانة - درج',
+            'مشتريات قطع غيار صيانة',
             `دفع تكلفة / باقي حساب صيانة رقم #${repair.id} - الهاتف: ${repair.device_name || ''} - للعميل: ${repair.customer_name || ''}${paymentNote ? ` - ملاحظات: ${paymentNote}` : ''}`,
             activeBranchId || null
           )
@@ -2335,7 +2426,7 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
 
         if (inspectionFeeAmt > 0) {
           await processTreasuryTransaction(
-            Number(rejectWalletId), inspectionFeeAmt, 'in', 'إيراد صيانة - درج',
+            Number(rejectWalletId), inspectionFeeAmt, 'in', 'مشتريات قطع غيار صيانة',
             `تحصيل رسوم فحص/كشف (لرفض صيانة) - تذكرة RP${repair.id.toString().padStart(6, '0')} - الهاتف: ${repair.device_name || ''}`,
             repair.receiving_branch_id || repair.branch_id || activeBranchId || null
           );
@@ -2555,6 +2646,100 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
 
   return (
     <>
+      {isAddPartModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsAddPartModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Wrench className="w-6 h-6 text-blue-500" />
+                إضافة قطعة مباشرة
+              </h3>
+              <button
+                onClick={() => setIsAddPartModalOpen(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto custom-scrollbar flex-1 pr-2 pb-2">
+              <div>
+                <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">اسم القطعة</label>
+                <input
+                  type="text"
+                  value={directPartName}
+                  onChange={e => setDirectPartName(e.target.value)}
+                  placeholder="مثال: شاشة آيفون 13 برو"
+                  className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">سعر الشراء (التكلفة)</label>
+                  <input
+                    type="number"
+                    value={directPartCost}
+                    onChange={e => setDirectPartCost(e.target.value)}
+                    className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm text-left font-mono font-bold text-lg"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">سعر البيع للعميل</label>
+                  <input
+                    type="number"
+                    value={directPartPrice}
+                    onChange={e => setDirectPartPrice(e.target.value)}
+                    className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm text-left font-mono font-bold text-lg"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">الكمية</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={directPartQty}
+                  onChange={e => setDirectPartQty(e.target.value)}
+                  className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm text-left font-mono font-bold text-lg"
+                  dir="ltr"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">خصم التكلفة من خزنة:</label>
+                <select
+                  value={directPartWalletId}
+                  onChange={(e) => setDirectPartWalletId(e.target.value)}
+                  className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm font-bold appearance-none cursor-pointer"
+                >
+                  <option value="" disabled>-- اختر الخزنة (أو اتركها فارغة) --</option>
+                  {availableWallets.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+                {directPartCost && directPartQty && directPartWalletId && (
+                  <p className="text-sm text-slate-500 mt-2 font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 p-3 rounded-lg border border-rose-100 dark:border-rose-500/20">
+                    سيتم سحب <span className="font-mono text-lg mx-1">{(Number(directPartCost) * Number(directPartQty)).toFixed(2)}</span> ج.م من الخزنة المحددة.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 pt-6 border-t border-slate-100 dark:border-white/10">
+              <button
+                disabled={isLoading || !directPartName || !directPartPrice || !directPartCost}
+                onClick={handleAddDirectPart}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Check className="w-6 h-6" />}
+                <span className="text-lg">إضافة القطعة للصيانة</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <AnimatePresence>
         {isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -3519,9 +3704,7 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 w-full">
 
                           <div className="flex flex-col gap-4">
-                            <h3 className="text-slate-800 dark:text-gray-200 font-bold flex items-center gap-2">
-                              <Wrench className="w-5 h-5 text-slate-400" /> قطع الغيار
-                            </h3>
+                            <div className="flex items-center justify-between"><h3 className="text-slate-800 dark:text-gray-200 font-bold flex items-center gap-2"><Wrench className="w-5 h-5 text-slate-400" /> قطع الغيار</h3>{canEditData && (<button onClick={() => setIsAddPartModalOpen(true)} className="text-sm font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors flex items-center gap-1"><Plus className="w-4 h-4" /> إضافة قطعة مباشرة</button>)}</div>
 
                             {canEditData && (
                               <div className="space-y-4">
@@ -3752,10 +3935,10 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
               {/* Action Bar */}
               <div className="shrink-0 p-4 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#0d1117] flex flex-wrap justify-between items-center gap-4 border-b-0 rounded-b-2xl relative z-20">
                 <div className="flex gap-2 flex-wrap">
-                  <button disabled={isUpdatingStatus || isLoading} onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-blue-50 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-slate-700 text-blue-600 dark:text-slate-300 transition-colors border border-blue-200 dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">إغلاق</button>
-                  <button disabled={isUpdatingStatus || isLoading} onClick={executePrintInvoice} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Printer className="w-4 h-4" /> طباعة فاتورة
+                  <button disabled={isUpdatingStatus || isLoading} onClick={executePrintReceipt} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <Receipt className="w-4 h-4" /> طباعه فاتورة
                   </button>
+                 
                   <button disabled={isUpdatingStatus || isLoading} onClick={executePrintReceipt} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Receipt className="w-4 h-4" /> إنشاء فاتورة
                   </button>
@@ -4209,7 +4392,7 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
                 isNaN(Number(formData.payment_method)) ? null : Number(formData.payment_method),
                 payload.paid_amount,
                 'in',
-                'إيراد صيانة - درج',
+                'مشتريات قطع غيار صيانة',
                 `مقدم (عربون) صيانة - تذكرة صيانة رقم #${createdRepair.id} - الهاتف: ${createdRepair.device_name || ''} - للعميل: ${createdRepair.customer_name || ''}`,
                 payload.receiving_branch_id
               );
@@ -4505,14 +4688,14 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
             />
           )}
           {settings?.maintenanceStickerTemplate === 'first' ? (
-              <PrintMaintenanceStickerFirst ref={barcodePrintRef} repair={successData} />
-            ) : settings?.maintenanceStickerTemplate === 'seconde' ? (
-              <PrintMaintenanceStickerSecond ref={barcodePrintRef} repair={successData} />
-            ) : settings?.maintenanceStickerTemplate === 'third' ? (
-              <PrintMaintenanceStickerThird ref={barcodePrintRef} repair={successData} />
-            ) : (
-              <PrintMaintenanceSticker ref={barcodePrintRef} repair={successData} />
-            )}
+            <PrintMaintenanceStickerFirst ref={barcodePrintRef} repair={successData} />
+          ) : settings?.maintenanceStickerTemplate === 'seconde' ? (
+            <PrintMaintenanceStickerSecond ref={barcodePrintRef} repair={successData} />
+          ) : settings?.maintenanceStickerTemplate === 'third' ? (
+            <PrintMaintenanceStickerThird ref={barcodePrintRef} repair={successData} />
+          ) : (
+            <PrintMaintenanceSticker ref={barcodePrintRef} repair={successData} />
+          )}
         </div>
       </>
     );
@@ -4941,6 +5124,10 @@ function DailyCloseModal({ isOpen, onClose, repairs, closedCollections, shiftRev
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState('');
 
+  const actCashierCheck = JSON.parse(localStorage.getItem('active_cashier') || '{}');
+  const roleLevelCheck = actCashierCheck?.role_level || 3;
+  const isOwnerActCheck = localStorage.getItem('admin_active') === 'true' || roleLevelCheck === 1;
+
   const todayStr = new Date().toDateString();
   const shiftTickets = repairs.filter(r => new Date(r.created_at).toDateString() === todayStr);
   const newTicketsToday = shiftTickets.length;
@@ -5050,7 +5237,7 @@ function DailyCloseModal({ isOpen, onClose, repairs, closedCollections, shiftRev
 
           // Change category of pending transactions to completed
           patchPromises.push(
-            fetch(`${SUPABASE_URL}/rest/v1/treasury_transactions?category=eq.${encodeURIComponent('إيراد صيانة - درج')}&or=(${tenantQuery})`, {
+            fetch(`${SUPABASE_URL}/rest/v1/treasury_transactions?category=eq.${encodeURIComponent('مشتريات قطع غيار صيانة')}&or=(${tenantQuery})`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json', 'apikey': API_KEY, 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ category: 'إيراد صيانة' })
@@ -5245,22 +5432,24 @@ function DailyCloseModal({ isOpen, onClose, repairs, closedCollections, shiftRev
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                  <div className="bg-white dark:bg-[#1a1f2e] print:bg-slate-50 border border-slate-200 dark:border-white/5 print:border-slate-300 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-500 print:text-slate-700 mb-1">صافي الربح</p>
-                      <p className="text-lg font-bold text-emerald-500 dark:text-emerald-400 print:text-emerald-600 font-mono">{netProfit.toFixed(2)} <span className="text-xs font-sans text-emerald-500/50">ج.م</span></p>
+                {isOwnerActCheck && (
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div className="bg-white dark:bg-[#1a1f2e] print:bg-slate-50 border border-slate-200 dark:border-white/5 print:border-slate-300 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-slate-500 print:text-slate-700 mb-1">صافي الربح</p>
+                        <p className="text-lg font-bold text-emerald-500 dark:text-emerald-400 print:text-emerald-600 font-mono">{netProfit.toFixed(2)} <span className="text-xs font-sans text-emerald-500/50">ج.م</span></p>
+                      </div>
+                      <DollarSign className="w-8 h-8 text-emerald-500/10 dark:text-emerald-500/20" />
                     </div>
-                    <DollarSign className="w-8 h-8 text-emerald-500/10 dark:text-emerald-500/20" />
-                  </div>
-                  <div className="bg-white dark:bg-[#1a1f2e] print:bg-slate-50 border border-slate-200 dark:border-white/5 print:border-slate-300 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-500 print:text-slate-700 mb-1">تكلفة القطع</p>
-                      <p className="text-lg font-bold text-rose-500 dark:text-rose-400 print:text-rose-600 font-mono">{partsCost.toFixed(2)} <span className="text-xs font-sans text-rose-500/50">ج.م</span></p>
+                    <div className="bg-white dark:bg-[#1a1f2e] print:bg-slate-50 border border-slate-200 dark:border-white/5 print:border-slate-300 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-slate-500 print:text-slate-700 mb-1">تكلفة القطع</p>
+                        <p className="text-lg font-bold text-rose-500 dark:text-rose-400 print:text-rose-600 font-mono">{partsCost.toFixed(2)} <span className="text-xs font-sans text-rose-500/50">ج.م</span></p>
+                      </div>
+                      <Wrench className="w-8 h-8 text-rose-500/10 dark:text-rose-500/20" />
                     </div>
-                    <Wrench className="w-8 h-8 text-rose-500/10 dark:text-rose-500/20" />
                   </div>
-                </div>
+                )}
 
               </div>
 
@@ -5455,7 +5644,7 @@ function ReceivePaymentModal({ isOpen, onClose, repairs, onSuccess }: { isOpen: 
           selectedWalletId ? Number(selectedWalletId) : null,
           amount,
           'in',
-          'إيراد صيانة - درج',
+          'مشتريات قطع غيار صيانة',
           `دفع تكلفة / باقي حساب صيانة رقم #${selectedRepair.id} - الهاتف: ${selectedRepair.device_name || ''} - للعميل: ${selectedRepair.customer_name || ''}`,
           localStorage.getItem('takka_active_branch_id') === 'ALL' ? null : (localStorage.getItem('takka_active_branch_id') || null)
         );
@@ -5614,3 +5803,13 @@ function ReceivePaymentModal({ isOpen, onClose, repairs, onSuccess }: { isOpen: 
     </AnimatePresence>
   );
 }
+
+
+
+
+
+
+
+
+
+
