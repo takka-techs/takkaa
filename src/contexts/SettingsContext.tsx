@@ -29,6 +29,10 @@ export interface AppSettings {
   maintenanceNote: string;
   warrantyTerms: string;
   maintenanceFooter: string;
+  maintenanceReceiptTemplate: string;
+  maintenanceStickerTemplate: string;
+  maintenanceReceiptTopHeader: string;
+  salesReceiptTemplate: string;
   // App UI
   appFontSize: number;
   // WhatsApp Template
@@ -95,7 +99,11 @@ const defaultSettings: AppSettings = {
   showBarcodeOnSticker: true,
   maintenanceNote: 'يرجى الاحتفاظ بهذا الإيصال... المحل غير مسؤول عن الأجهزة التي لم تُستلم خلال 30 يوم',
   warrantyTerms: 'الضمان لا يشمل كسر الشاشة أو دخول المياه',
-  maintenanceFooter: 'شكراً لثقتكم — نتمنى لكم خدمة مميزة',
+  maintenanceFooter: 'تنويه: المتجر غير مسؤول عن الأجهزة التي تترك لأكثر من 30 يوم',
+  maintenanceReceiptTemplate: 'default',
+  maintenanceStickerTemplate: 'default',
+  maintenanceReceiptTopHeader: 'افضل خدمه\nافضل جوده\nافضل سعر',
+  salesReceiptTemplate: 'default',
   appFontSize: 100,
   whatsappMaintenanceTemplate: 'السلام عليكم {customer_name}\nمن {company_name}\n\nتحديث حالة جهازك:\n📱 الجهاز: {device}\n🔖 رقم التذكرة: {ticket_no}\n📌 الحالة: {status}\n💰 التكلفة: {total_cost} ج.م\n\nشكراً لثقتكم 🙏 {tech_name}',
   invoiceNumbering: DEFAULT_INVOICE_NUMBERING,
@@ -125,10 +133,10 @@ const defaultSettings: AppSettings = {
 
 const SettingsContext = createContext<SettingsContextType>({
   settings: defaultSettings,
-  refreshSettings: async () => {},
-  updateSettings: async () => {},
+  refreshSettings: async () => { },
+  updateSettings: async () => { },
   isLoading: true,
-  playSound: () => {}
+  playSound: () => { }
 });
 
 export const useSettings = () => useContext(SettingsContext);
@@ -139,20 +147,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const updateSettings = async (newSettings: Partial<AppSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
-    
+
     // Also save to database
     const token = localStorage.getItem('access_token');
     const userId = localStorage.getItem('user_id');
-    
+
     const updatedSettings = { ...settings, ...newSettings };
     if (userId) {
       localStorage.setItem(`takka_settings_${userId}`, JSON.stringify(updatedSettings));
     } else {
       localStorage.setItem('takka_settings', JSON.stringify(updatedSettings));
     }
-    
+
     if (!userId) return;
-    
+
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/app_settings?user_id=eq.${userId}`, {
         headers: {
@@ -169,47 +177,51 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
 
       const payload = {
-          user_id: userId,
-          company_name: updatedSettings.companyName,
-          currency: updatedSettings.currency,
-          tax_rate: updatedSettings.taxRate,
-          invoice_header: updatedSettings.invoiceHeader,
-          invoice_footer: updatedSettings.invoiceFooter,
-          theme: updatedSettings.theme,
-          accent_color: updatedSettings.accentColor,
-          logo: updatedSettings.logo,
-          date_format: updatedSettings.dateFormat,
-          direct_print: updatedSettings.directPrint,
-          paper_width: updatedSettings.paperWidth,
-          receipt_font_size: updatedSettings.receiptFontSize,
-          phone: updatedSettings.phone,
-          address: updatedSettings.address,
-          show_details: updatedSettings.showDetails,
-          barcode_direct_print: updatedSettings.barcodeDirectPrint,
-          barcode_width: updatedSettings.barcodeWidth,
-          barcode_height: updatedSettings.barcodeHeight,
-          barcode_font_size: updatedSettings.barcodeFontSize,
-          maintenance_note: updatedSettings.maintenanceNote,
-          warranty_terms: updatedSettings.warrantyTerms,
-          maintenance_footer: updatedSettings.maintenanceFooter,
-          app_font_size: updatedSettings.appFontSize,
-          whatsapp_maintenance_template: updatedSettings.whatsappMaintenanceTemplate,
-          invoice_numbering: updatedSettings.invoiceNumbering,
-          transfer_settings: updatedSettings.transferSettings,
-          enable_notifications: updatedSettings.enableNotifications,
-          enable_sounds: updatedSettings.enableSounds,
-          task_reminders: updatedSettings.taskReminders,
-          sales_notifications: updatedSettings.salesNotifications,
-          low_stock_notifications: updatedSettings.lowStockNotifications,
-          low_stock_alert: updatedSettings.lowStockAlert,
-          low_stock_threshold: updatedSettings.lowStockThreshold,
-          prevent_zero_stock_sales: updatedSettings.preventZeroStockSales,
-          has_branches: updatedSettings.hasBranches
+        user_id: userId,
+        company_name: updatedSettings.companyName,
+        currency: updatedSettings.currency,
+        tax_rate: updatedSettings.taxRate,
+        invoice_header: updatedSettings.invoiceHeader,
+        invoice_footer: updatedSettings.invoiceFooter,
+        theme: updatedSettings.theme,
+        accent_color: updatedSettings.accentColor,
+        logo: updatedSettings.logo,
+        date_format: updatedSettings.dateFormat,
+        direct_print: updatedSettings.directPrint,
+        paper_width: updatedSettings.paperWidth,
+        receipt_font_size: updatedSettings.receiptFontSize,
+        phone: updatedSettings.phone,
+        address: updatedSettings.address,
+        show_details: updatedSettings.showDetails,
+        barcode_direct_print: updatedSettings.barcodeDirectPrint,
+        barcode_width: updatedSettings.barcodeWidth,
+        barcode_height: updatedSettings.barcodeHeight,
+        barcode_font_size: updatedSettings.barcodeFontSize,
+        maintenance_note: updatedSettings.maintenanceNote,
+        warranty_terms: updatedSettings.warrantyTerms,
+        maintenance_footer: updatedSettings.maintenanceFooter,
+        maintenance_receipt_template: updatedSettings.maintenanceReceiptTemplate,
+        maintenance_sticker_template: updatedSettings.maintenanceStickerTemplate,
+        maintenance_receipt_top_header: updatedSettings.maintenanceReceiptTopHeader,
+        sales_receipt_template: updatedSettings.salesReceiptTemplate,
+        app_font_size: updatedSettings.appFontSize,
+        whatsapp_maintenance_template: updatedSettings.whatsappMaintenanceTemplate,
+        invoice_numbering: updatedSettings.invoiceNumbering,
+        transfer_settings: updatedSettings.transferSettings,
+        enable_notifications: updatedSettings.enableNotifications,
+        enable_sounds: updatedSettings.enableSounds,
+        task_reminders: updatedSettings.taskReminders,
+        sales_notifications: updatedSettings.salesNotifications,
+        low_stock_notifications: updatedSettings.low_stock_notifications,
+        low_stock_alert: updatedSettings.low_stock_alert,
+        low_stock_threshold: updatedSettings.low_stock_threshold,
+        prevent_zero_stock_sales: updatedSettings.prevent_zero_stock_sales,
+        has_branches: updatedSettings.has_branches
       };
-      
+
       const method = settingsId ? 'PATCH' : 'POST';
       const url = settingsId ? `${SUPABASE_URL}/rest/v1/app_settings?id=eq.${settingsId}&user_id=eq.${userId}` : `${SUPABASE_URL}/rest/v1/app_settings`;
-      
+
       await fetch(url, {
         method,
         headers: {
@@ -230,7 +242,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = localStorage.getItem('access_token');
       const userId = localStorage.getItem('user_id');
-      
+
       if (!userId) {
         // Fallback to local storage
         const saved = localStorage.getItem('takka_settings');
@@ -245,14 +257,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         if (data && data.length > 0) {
           const dbSettings = data[0];
           const savedLocal = localStorage.getItem(`takka_settings_${userId}`);
           const parsedLocal = savedLocal ? JSON.parse(savedLocal) : null;
-          
+
           const newSettings = {
             companyName: dbSettings.company_name || defaultSettings.companyName,
             currency: dbSettings.currency || defaultSettings.currency,
@@ -277,7 +289,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             showBarcodeOnSticker: parsedLocal?.showBarcodeOnSticker ?? defaultSettings.showBarcodeOnSticker,
             maintenanceNote: dbSettings.maintenance_note || defaultSettings.maintenanceNote,
             warrantyTerms: dbSettings.warranty_terms || defaultSettings.warrantyTerms,
-            maintenanceFooter: dbSettings.maintenance_footer || defaultSettings.maintenanceFooter,
+            maintenanceFooter: dbSettings.maintenance_footer || 'تنويه: المتجر غير مسؤول عن الأجهزة التي تترك لأكثر من 30 يوم',
+            maintenanceReceiptTemplate: dbSettings.maintenance_receipt_template || 'default',
+            maintenanceStickerTemplate: dbSettings.maintenance_sticker_template || 'default',
+            maintenanceReceiptTopHeader: dbSettings.maintenance_receipt_top_header || 'افضل خدمه\nافضل جوده\nافضل سعر',
+            salesReceiptTemplate: dbSettings.sales_receipt_template || 'default',
             appFontSize: dbSettings.app_font_size ?? defaultSettings.appFontSize,
             whatsappMaintenanceTemplate: dbSettings.whatsapp_maintenance_template || defaultSettings.whatsappMaintenanceTemplate,
             invoiceNumbering: dbSettings.invoice_numbering || defaultSettings.invoiceNumbering,
@@ -298,14 +314,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           // Sync local storage as backup
           localStorage.setItem(`takka_settings_${userId}`, JSON.stringify(newSettings));
         } else {
-            // New account without settings in DB
-            // Clear settings context config to default if needed or rely on locally saved from signup
-            const fallbackLocal = localStorage.getItem(`takka_settings_${userId}`) || localStorage.getItem('takka_settings');
-            if (fallbackLocal) {
-              setSettings(JSON.parse(fallbackLocal));
-            } else {
-              setSettings(defaultSettings);
-            }
+          // New account without settings in DB
+          // Clear settings context config to default if needed or rely on locally saved from signup
+          const fallbackLocal = localStorage.getItem(`takka_settings_${userId}`) || localStorage.getItem('takka_settings');
+          if (fallbackLocal) {
+            setSettings(JSON.parse(fallbackLocal));
+          } else {
+            setSettings(defaultSettings);
+          }
         }
       }
     } catch (err) {
@@ -332,10 +348,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
-      
+
       if (type === 'ting') {
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
@@ -362,12 +378,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         oscillator.stop(audioCtx.currentTime + 0.3);
       } else if (type === 'success') {
         oscillator.type = 'sine';
-        
+
         // First note
         oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
         gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        
+
         // Second note
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
@@ -377,7 +393,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         osc2.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
         gain2.gain.setValueAtTime(0.3, audioCtx.currentTime + 0.1);
         gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-        
+
         oscillator.start(audioCtx.currentTime);
         oscillator.stop(audioCtx.currentTime + 0.1);
         osc2.start(audioCtx.currentTime + 0.1);

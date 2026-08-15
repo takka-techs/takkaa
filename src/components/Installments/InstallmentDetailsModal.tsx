@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { X, Calendar, DollarSign, Clock, AlertTriangle, User, Phone, CheckCircle, Smartphone, SmartphoneNfc, Printer } from 'lucide-react';
 import BulkPaymentModal from './BulkPaymentModal';
 import { useReactToPrint } from 'react-to-print';
-import { PrintReceiptTemplate } from '../PrintReceiptTemplate';
+import { PrintReceiptTemplate } from '../SalesReceiptPrinter';
 
 const SUPABASE_URL = 'https://hoohxkrrndtfpwsrnpyr.supabase.co';
 const API_KEY = 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa';

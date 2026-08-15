@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Calendar, Filter, ChevronDown, 
@@ -11,7 +11,7 @@ import {
   CreditCard, Receipt, MoreHorizontal, Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { PrintReceiptTemplate } from './PrintReceiptTemplate';
+import { PrintReceiptTemplate } from './SalesReceiptPrinter';
 import { useReactToPrint } from 'react-to-print';
 import { useSettings } from '../contexts/SettingsContext';
 

@@ -3,8 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useReactToPrint } from 'react-to-print';
 import { useBranch } from '../contexts/BranchContext';
 import { PrintMaintenanceReceipt } from './PrintMaintenanceReceipt';
+import { PrintMaintenanceReceiptDetailed } from './PrintMaintenanceReceiptDetailed';
+import { PrintMaintenanceReceiptSecondDetailed } from './PrintMaintenanceReceiptSecondDetailed';
 import { PrintMaintenanceInvoice } from './PrintMaintenanceInvoice';
 import { PrintMaintenanceSticker } from './PrintMaintenanceSticker';
+import { PrintMaintenanceSticker as PrintMaintenanceStickerFirst } from './PrintMaintenanceStickerfirst';
+import { PrintMaintenanceSticker as PrintMaintenanceStickerSecond } from './PrintMaintenanceStickerseconde';
+import { PrintMaintenanceSticker as PrintMaintenanceStickerThird } from './PrintMaintenanceStickerthird';
 import { useSettings } from '../contexts/SettingsContext';
 import {
   Search, Plus, Filter, FileText, CheckCircle2,
@@ -3869,18 +3874,35 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', visibility: 'hidden' }}>
         {repair && (
           <>
-            <PrintMaintenanceReceipt
-              ref={receiptPrintRef}
-              repair={repair}
-            />
+            {settings?.maintenanceReceiptTemplate === 'second_detailed' ? (
+              <PrintMaintenanceReceiptSecondDetailed
+                ref={receiptPrintRef}
+                repair={repair}
+              />
+            ) : settings?.maintenanceReceiptTemplate === 'detailed' ? (
+              <PrintMaintenanceReceiptDetailed
+                ref={receiptPrintRef}
+                repair={repair}
+              />
+            ) : (
+              <PrintMaintenanceReceipt
+                ref={receiptPrintRef}
+                repair={repair}
+              />
+            )}
             <PrintMaintenanceInvoice
               ref={invoicePrintRef}
               repair={repair}
             />
-            <PrintMaintenanceSticker
-              ref={barcodePrintRef}
-              repair={repair}
-            />
+            {settings?.maintenanceStickerTemplate === 'first' ? (
+              <PrintMaintenanceStickerFirst ref={barcodePrintRef} repair={repair} />
+            ) : settings?.maintenanceStickerTemplate === 'seconde' ? (
+              <PrintMaintenanceStickerSecond ref={barcodePrintRef} repair={repair} />
+            ) : settings?.maintenanceStickerTemplate === 'third' ? (
+              <PrintMaintenanceStickerThird ref={barcodePrintRef} repair={repair} />
+            ) : (
+              <PrintMaintenanceSticker ref={barcodePrintRef} repair={repair} />
+            )}
           </>
         )}
       </div>
@@ -4466,14 +4488,31 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
           </div>
         </AnimatePresence>
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', visibility: 'hidden' }}>
-          <PrintMaintenanceReceipt
-            ref={receiptPrintRef}
-            repair={successData}
-          />
-          <PrintMaintenanceSticker
-            ref={barcodePrintRef}
-            repair={successData}
-          />
+          {settings?.maintenanceReceiptTemplate === 'second_detailed' ? (
+            <PrintMaintenanceReceiptSecondDetailed
+              ref={receiptPrintRef}
+              repair={successData}
+            />
+          ) : settings?.maintenanceReceiptTemplate === 'detailed' ? (
+            <PrintMaintenanceReceiptDetailed
+              ref={receiptPrintRef}
+              repair={successData}
+            />
+          ) : (
+            <PrintMaintenanceReceipt
+              ref={receiptPrintRef}
+              repair={successData}
+            />
+          )}
+          {settings?.maintenanceStickerTemplate === 'first' ? (
+              <PrintMaintenanceStickerFirst ref={barcodePrintRef} repair={successData} />
+            ) : settings?.maintenanceStickerTemplate === 'seconde' ? (
+              <PrintMaintenanceStickerSecond ref={barcodePrintRef} repair={successData} />
+            ) : settings?.maintenanceStickerTemplate === 'third' ? (
+              <PrintMaintenanceStickerThird ref={barcodePrintRef} repair={successData} />
+            ) : (
+              <PrintMaintenanceSticker ref={barcodePrintRef} repair={successData} />
+            )}
         </div>
       </>
     );
@@ -4863,14 +4902,31 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', visibility: 'hidden' }}>
         {successData && (
           <>
-            <PrintMaintenanceReceipt
-              ref={receiptPrintRef}
-              repair={successData}
-            />
-            <PrintMaintenanceSticker
-              ref={barcodePrintRef}
-              repair={successData}
-            />
+            {settings?.maintenanceReceiptTemplate === 'second_detailed' ? (
+              <PrintMaintenanceReceiptSecondDetailed
+                ref={receiptPrintRef}
+                repair={successData}
+              />
+            ) : settings?.maintenanceReceiptTemplate === 'detailed' ? (
+              <PrintMaintenanceReceiptDetailed
+                ref={receiptPrintRef}
+                repair={successData}
+              />
+            ) : (
+              <PrintMaintenanceReceipt
+                ref={receiptPrintRef}
+                repair={successData}
+              />
+            )}
+            {settings?.maintenanceStickerTemplate === 'first' ? (
+              <PrintMaintenanceStickerFirst ref={barcodePrintRef} repair={successData} />
+            ) : settings?.maintenanceStickerTemplate === 'seconde' ? (
+              <PrintMaintenanceStickerSecond ref={barcodePrintRef} repair={successData} />
+            ) : settings?.maintenanceStickerTemplate === 'third' ? (
+              <PrintMaintenanceStickerThird ref={barcodePrintRef} repair={successData} />
+            ) : (
+              <PrintMaintenanceSticker ref={barcodePrintRef} repair={successData} />
+            )}
           </>
         )}
       </div>

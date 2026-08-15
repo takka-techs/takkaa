@@ -115,7 +115,11 @@ export default function Settings() {
     showBarcodeOnSticker: true,
     maintenanceNote: 'يرجى الاحتفاظ بهذا الإيصال... المحل غير مسؤول عن الأجهزة التي لم تُستلم خلال 30 يوم',
     warrantyTerms: 'الضمان لا يشمل كسر الشاشة أو دخول المياه',
-    maintenanceFooter: 'شكراً لثقتكم — نتمنى لكم خدمة مميزة',
+    maintenanceFooter: 'تنويه: المتجر غير مسؤول عن الأجهزة التي تترك لأكثر من 30 يوم',
+    maintenanceReceiptTemplate: 'default',
+    maintenanceStickerTemplate: 'default',
+    maintenanceReceiptTopHeader: 'افضل خدمه\nافضل جوده\nافضل سعر',
+    salesReceiptTemplate: 'default',
     appFontSize: 100,
     whatsappMaintenanceTemplate: 'السلام عليكم {customer_name}\nمن {company_name}\n\nتحديث حالة جهازك:\n📱 الجهاز: {device}\n🔖 رقم التذكرة: {ticket_no}\n📌 الحالة: {status}\n💰 التكلفة: {total_cost} ج.م\n\nشكراً لثقتكم 🙏 {tech_name}',
     invoiceNumbering: {
@@ -216,7 +220,11 @@ export default function Settings() {
             showBarcodeOnSticker: parsedLocal?.showBarcodeOnSticker ?? true,
             maintenanceNote: dbSettings.maintenance_note || 'يرجى الاحتفاظ بهذا الإيصال... المحل غير مسؤول عن الأجهزة التي لم تُستلم خلال 30 يوم',
             warrantyTerms: dbSettings.warranty_terms || 'الضمان لا يشمل كسر الشاشة أو دخول المياه',
-            maintenanceFooter: dbSettings.maintenance_footer || 'شكراً لثقتكم — نتمنى لكم خدمة مميزة',
+            maintenanceFooter: dbSettings.maintenance_footer || 'تنويه: المتجر غير مسؤول عن الأجهزة التي تترك لأكثر من 30 يوم',
+            maintenanceReceiptTemplate: dbSettings.maintenance_receipt_template || 'default',
+            maintenanceStickerTemplate: dbSettings.maintenance_sticker_template || 'default',
+            maintenanceReceiptTopHeader: dbSettings.maintenance_receipt_top_header || 'افضل خدمه\nافضل جوده\nافضل سعر',
+            salesReceiptTemplate: dbSettings.sales_receipt_template || 'default',
             appFontSize: dbSettings.app_font_size ?? 100,
             whatsappMaintenanceTemplate: dbSettings.whatsapp_maintenance_template || 'السلام عليكم {customer_name}\nمن {company_name}\n\nتحديث حالة جهازك:\n📱 الجهاز: {device}\n🔖 رقم التذكرة: {ticket_no}\n📌 الحالة: {status}\n💰 التكلفة: {total_cost} ج.م\n\nشكراً لثقتكم 🙏 {tech_name}',
             invoiceNumbering: dbSettings.invoice_numbering || {
@@ -316,6 +324,10 @@ export default function Settings() {
           maintenance_footer: settingsData.maintenanceFooter,
           app_font_size: settingsData.appFontSize,
           whatsapp_maintenance_template: settingsData.whatsappMaintenanceTemplate,
+          maintenance_receipt_template: settingsData.maintenanceReceiptTemplate,
+          maintenance_sticker_template: settingsData.maintenanceStickerTemplate,
+          maintenance_receipt_top_header: settingsData.maintenanceReceiptTopHeader,
+          sales_receipt_template: settingsData.salesReceiptTemplate,
           invoice_numbering: settingsData.invoiceNumbering,
           transfer_settings: settingsData.transferSettings,
           enable_notifications: settingsData.enableNotifications,
@@ -837,14 +849,59 @@ export default function Settings() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-bold text-slate-700 dark:text-slate-300">حجم الخط</label>
+                        <div className="relative">
+                          <input 
+                            type="number"
+                            value={parseInt(settingsData.receiptFontSize) || 100}
+                            onChange={(e) => handleChange('receiptFontSize', `${e.target.value}%`)}
+                            className="w-full bg-white dark:bg-[#1a2332] border-2 border-slate-200 dark:border-[#2d3748] shadow-sm rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none font-bold focus:border-blue-500 transition-colors"
+                          />
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">قالب إيصال الاستلام</label>
                         <select 
-                          value={settingsData.receiptFontSize}
-                          onChange={(e) => handleChange('receiptFontSize', e.target.value)}
+                          value={settingsData.maintenanceReceiptTemplate}
+                          onChange={(e) => handleChange('maintenanceReceiptTemplate', e.target.value)}
                           className="w-full bg-white dark:bg-[#1a2332] border-2 border-slate-200 dark:border-[#2d3748] shadow-sm rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none font-bold appearance-none cursor-pointer focus:border-blue-500 transition-colors"
                         >
-                          <option value="90%">صغير</option>
-                          <option value="100%">متوسط</option>
-                          <option value="110%">كبير</option>
+                          <option value="default">الافتراضي (عادي)</option>
+                          <option value="detailed">المفصل (جدول)</option>
+                          <option value="second_detailed">المفصل 2 (أيقونات)</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t-2 border-slate-100 dark:border-[#2d3748]">
+                      <div className="space-y-2 col-span-2">
+                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">قالب طباعة الباركود/الاستيكر</label>
+                        <select 
+                          value={settingsData.maintenanceStickerTemplate || 'default'}
+                          onChange={(e) => handleChange('maintenanceStickerTemplate', e.target.value)}
+                          className="w-full bg-white dark:bg-[#1a2332] border-2 border-slate-200 dark:border-[#2d3748] shadow-sm rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none font-bold appearance-none cursor-pointer focus:border-blue-500 transition-colors"
+                        >
+                          <option value="default">الافتراضي (بسيط)</option>
+                          <option value="first">الشكل الأول (نص متجاوب)</option>
+                          <option value="seconde">الشكل الثاني (تقسيم 58/42)</option>
+                          <option value="third">الشكل الثالث (محاذاة وأيقونات)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t-2 border-slate-100 dark:border-[#2d3748]">
+                      <div className="space-y-2 col-span-2">
+                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">قالب فاتورة المبيعات</label>
+                        <select 
+                          value={settingsData.salesReceiptTemplate || 'default'}
+                          onChange={(e) => handleChange('salesReceiptTemplate', e.target.value)}
+                          className="w-full bg-white dark:bg-[#1a2332] border-2 border-slate-200 dark:border-[#2d3748] shadow-sm rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none font-bold appearance-none cursor-pointer focus:border-blue-500 transition-colors"
+                        >
+                          <option value="default">الافتراضي (كلاسيك أسود)</option>
+                          <option value="first">الشكل الأول (ذهبي مع ريبون)</option>
+                          <option value="seconde">الشكل الثاني (ذهبي مع لوجو)</option>
+                          <option value="third">الشكل الثالث (نيفي بلو)</option>
+                          <option value="fourth">الشكل الرابع (عمودين)</option>
                         </select>
                       </div>
                     </div>
@@ -1038,6 +1095,17 @@ export default function Settings() {
                         placeholder="مثال: الضمان لا يشمل كسر الشاشة أو دخول المياه"
                       />
                       <p className="text-base text-slate-500 mt-1">يظهر في فاتورة الصيانة بعد مدة الضمان</p>
+                    </div>
+
+                    <div className="space-y-3 mt-4">
+                      <label className="text-base font-bold text-slate-800 dark:text-slate-200 block mb-1">ترويسة إيصال الصيانة (السطر العلوي)</label>
+                      <textarea 
+                        value={settingsData.maintenanceReceiptTopHeader}
+                        onChange={(e) => handleChange('maintenanceReceiptTopHeader', e.target.value)}
+                        className="w-full bg-white dark:bg-[#1a2332] border-2 border-slate-200 dark:border-[#2d3748] shadow-sm rounded-2xl px-5 py-4 text-slate-900 dark:text-white outline-none font-bold placeholder-slate-400 focus:border-blue-500 transition-colors resize-none"
+                        rows={3}
+                        placeholder="افضل خدمه\nافضل جوده\nافضل سعر"
+                      />
                     </div>
 
                     <div className="space-y-3 mt-4">

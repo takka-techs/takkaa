@@ -222,8 +222,8 @@ export const PrintReceiptTemplate = React.forwardRef<
           </div>
         )}
         {paymentMethod === "installment" &&
-        installmentInterestCost &&
-        installmentInterestCost > 0 ? (
+          installmentInterestCost &&
+          installmentInterestCost > 0 ? (
           <div className="flex justify-between w-full px-2">
             <span>الفوائد (إضافي):</span>
             <span>{Number(installmentInterestCost).toFixed(2)}+</span>
@@ -268,8 +268,12 @@ export const PrintReceiptTemplate = React.forwardRef<
       </div>
 
       {/* Absolute Footer */}
-      <div className="bg-black text-white text-center font-bold text-[9px] py-1 mt-2 uppercase tracking-widest">
-        {settings?.companyName || "TAKKA ERP"}
+      <div className="text-center text-[9px] font-black mt-2 mb-1 flex items-center justify-center gap-1 opacity-60">
+
+        <span className="tracking-wider">TAKKA</span>
+        <span>Powered by</span>
+        <span className="mx-1">|</span>
+        <span className="tracking-widest">takka.fun</span>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@
 // import ShiftManagementModal from './ShiftManagementModal';
 // import { printReceipt } from '../lib/printReceipt';
 // import { useSettings } from '../contexts/SettingsContext';
-// import { PrintReceiptTemplate } from './PrintReceiptTemplate';
+// import { PrintReceiptTemplate } from './SalesReceiptPrinter';
 // import { PrintBarcodeTemplate } from './PrintBarcodeTemplate';
 // import { PrintBarcodeModal } from './PrintBarcodeModal';
 // import { useBranch } from '../contexts/BranchContext';
@@ -4725,7 +4725,7 @@ import {
 import ShiftManagementModal from './ShiftManagementModal';
 import { printReceipt } from '../lib/printReceipt';
 import { useSettings } from '../contexts/SettingsContext';
-import { PrintReceiptTemplate } from './PrintReceiptTemplate';
+import { PrintReceiptTemplate } from './SalesReceiptPrinter';
 import { PrintBarcodeTemplate } from './PrintBarcodeTemplate';
 import { PrintBarcodeModal } from './PrintBarcodeModal';
 import { useBranch } from '../contexts/BranchContext';
@@ -4745,6 +4745,7 @@ interface Product {
   barcode?: string;
   battery_percentage?: number | string;
   color?: string;
+  location?: string;
   type: 'device' | 'accessory' | 'spare_part';
 }
 
@@ -5425,6 +5426,7 @@ export default function POS() {
         barcode: item.barcode || null,
         battery_percentage: item.battery_percentage || null,
         color: item.color || null,
+        location: item.location || null,
       }));
 
       setProducts(mappedData);
@@ -9044,6 +9046,14 @@ export default function POS() {
                             <Palette className="w-3 h-3 text-indigo-500" /> {product.color}
                           </span>
                         )}
+                      </div>
+                    )}
+
+                    {product.type !== 'device' && product.location && (
+                      <div className="flex items-center gap-1 mb-2">
+                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-200 dark:border-amber-500/20">
+                          📍 {product.location}
+                        </span>
                       </div>
                     )}
 

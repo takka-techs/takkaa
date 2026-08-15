@@ -1,5 +1,4 @@
 import React, { forwardRef, useEffect, useRef } from 'react';
-import Barcode from 'react-barcode';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface PrintMaintenanceStickerProps {
@@ -52,7 +51,10 @@ export const PrintMaintenanceSticker = forwardRef<HTMLDivElement, PrintMaintenan
     if (!repair) return null;
 
     const date = new Date(repair.created_at || Date.now());
-    const ticketId = repair.id ? `R-${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, "0")}-${repair.id.toString().padStart(5, "0")}` : "R-NEW";
+
+    // تقسيم رقم التذكرة إلى جزئين لعرضهم بشكل أنيق
+    const ticketPrefix = repair.id ? `R-${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, "0")}` : "R-NEW";
+    const ticketSuffix = repair.id ? repair.id.toString().padStart(5, "0") : "";
 
     const barcodeWidth = settings?.barcodeWidth || '50mm';
     const barcodeHeight = settings?.barcodeHeight || '30mm';
@@ -102,53 +104,44 @@ export const PrintMaintenanceSticker = forwardRef<HTMLDivElement, PrintMaintenan
 
         <div className="sticker-wrapper">
           <div className="sticker-content p-[2mm] flex bg-white font-sans text-black">
-            <div className="w-full h-full border-[2px] border-black box-border rounded-[8px] flex flex-col overflow-hidden p-1">
+            <div className="w-full h-full border-[2px] border-black box-border rounded-[8px] flex overflow-hidden" dir="ltr">
 
-              {/* Row 1: Date | Name | Phone */}
+              {/* Left Side - Details (زادت مساحته إلى 78% ليكون النص أكبر وأوضح) */}
               <div
-                className="flex w-full items-center justify-center border-b-[1.5px] border-dashed border-gray-400 shrink-0 h-[28%] pb-1"
-                dir="ltr"
-                style={{ fontSize: `calc(${barcodeFontSize} * 0.85)` }}
+                className="w-[78%] shrink-0 flex flex-col justify-center h-full border-r-[2px] border-black box-border"
+                style={{ fontSize: `calc(${barcodeFontSize} * 0.90)` }}
               >
-                <div className="flex-1 flex justify-center items-center overflow-hidden h-full px-1">
+                <div className="flex-1 flex items-center justify-center w-full border-b-[1.5px] border-dashed border-gray-400 box-border px-1.5 overflow-hidden min-h-0">
                   <FitText text={formattedDate} />
                 </div>
-                <div className="w-[1.5px] bg-black h-[80%] rounded-full shrink-0"></div>
-                <div className="flex-1 flex justify-center items-center overflow-hidden h-full px-1">
+                <div className="flex-1 flex items-center justify-center w-full border-b-[1.5px] border-dashed border-gray-400 box-border px-1.5 overflow-hidden min-h-0">
                   <FitText text={repair.customer_name || '-'} />
                 </div>
-                <div className="w-[1.5px] bg-black h-[80%] rounded-full shrink-0"></div>
-                <div className="flex-1 flex justify-center items-center overflow-hidden h-full px-1">
+                <div className="flex-1 flex items-center justify-center w-full border-b-[1.5px] border-dashed border-gray-400 box-border px-1.5 overflow-hidden min-h-0">
+                  <FitText text={repair.issue || '-'} />
+                </div>
+                <div className="flex-1 flex items-center justify-center w-full box-border px-1.5 overflow-hidden min-h-0">
                   <FitText text={repair.customer_phone || '-'} />
                 </div>
               </div>
 
-              {/* Row 2: Issue */}
-              <div
-                className="flex w-full items-center justify-center shrink-0 h-[22%] overflow-hidden mt-0.5"
-                dir="rtl"
-                style={{ fontSize: `calc(${barcodeFontSize} * 0.95)` }}
-              >
-                <FitText text={repair.issue || '-'} />
-              </div>
-
-              {/* Row 3: Barcode & Ticket ID */}
-              <div className="flex-1 flex flex-col items-center justify-center overflow-hidden w-full min-h-0 pt-0.5">
-                <div className="flex-1 flex items-end justify-center w-full min-h-0 overflow-hidden">
-                  <Barcode
-                    value={repair.id ? repair.id.toString() : '00000'}
-                    width={1.6}
-                    height={28}
-                    displayValue={false}
-                    margin={2}
-                    background="transparent"
-                  />
-                </div>
+              {/* Right Side - Ticket ID (تم تقليله إلى 22% وتغيير شكل العرض) */}
+              <div className="flex-1 shrink-0 flex flex-col items-center justify-center px-[2px] py-[4px] bg-white overflow-hidden min-w-0">
+                {/* السطر الأول: التاريخ/البادئة */}
                 <div
-                  className="font-bold text-center tracking-tight text-black mt-[2px] w-full overflow-hidden whitespace-nowrap text-ellipsis shrink-0"
-                  style={{ fontSize: `calc(${barcodeFontSize} * 0.75)` }}
+                  className="w-full text-center tracking-tight text-gray-700 font-bold mb-1"
+                  style={{ fontSize: `calc(${barcodeFontSize} * 0.55)` }}
                 >
-                  {ticketId}
+                  {ticketPrefix}
+                  <div className="w-full h-[1px] bg-gray-300 mt-1"></div> {/* خط فاصل صغير */}
+                </div>
+
+                {/* السطر الثاني: رقم التذكرة البارز */}
+                <div
+                  className="w-full flex-1 flex items-center justify-center overflow-hidden text-center tracking-tight text-black"
+                  style={{ fontSize: `calc(${barcodeFontSize} * 1.1)` }}
+                >
+                  <FitText text={ticketSuffix} />
                 </div>
               </div>
 

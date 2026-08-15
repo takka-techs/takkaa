@@ -88,6 +88,7 @@ import Treasury from "./components/Treasury";
 import Reminders from "./components/Reminders";
 import Inventory from "./components/Inventory";
 import LowStockReport from "./components/LowStockReport";
+import Expenses from "./components/Expenses";
 
 import DashboardHome from "./components/DashboardHome";
 import InstallmentsDashboard from "./components/Installments/InstallmentsDashboard";
@@ -182,6 +183,8 @@ function Login({
         enableNotifications: wizardData.notifications,
         enableSounds: wizardData.sounds,
         hasBranches: true,
+        phone: wizardData.phone,
+        managerName: wizardData.fullName,
       };
 
       // Save to local storage right away so ui updates
@@ -245,6 +248,8 @@ function Login({
                   date_format: wizardData.dateFormat || "DD/MM/YYYY",
                   low_stock_threshold: wizardData.lowStockThreshold || 10,
                   has_branches: true,
+                  phone: wizardData.phone || "",
+                  managerName: wizardData.fullName || "",
                 };
                 if (method === "POST") bodyPayload.user_id = data.user.id;
 
@@ -1071,6 +1076,7 @@ function Dashboard({
     }, // We'll tie to treasury
     { type: "item", icon: Landmark, label: "الخزينة", id: "treasury" },
     { type: "item", icon: DollarSign, label: "رأس المال", id: "capital" },
+    { type: "item", icon: ArrowDownRight, label: "المصروفات", id: "expenses" },
     { type: "item", icon: Users, label: "العملاء", id: "customers" },
     { type: "item", icon: Truck, label: "الموردين", id: "suppliers" },
 
@@ -1166,6 +1172,7 @@ function Dashboard({
       purchases: ["purchases"],
       accounting: ["accounting"],
       treasury: ["treasury"],
+      expenses: ["treasury", "accounting"],
       customers: ["customers"],
       suppliers: ["suppliers"],
       employees: ["employees"],
@@ -1988,6 +1995,7 @@ function Dashboard({
 
               {activeView === "treasury" && <Treasury />}
               {activeView === "capital" && <Capital />}
+              {activeView === "expenses" && <Expenses />}
 
               {activeView === "archive" && <ArchivePage />}
 

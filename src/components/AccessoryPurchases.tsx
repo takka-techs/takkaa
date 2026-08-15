@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, Layers, Zap, RotateCcw, Search, Calendar, Filter, 
@@ -12,7 +12,7 @@ import AddAccessoryQuantityModal from './AddAccessoryQuantityModal';
 import ReturnAccessoryModal from './ReturnAccessoryModal';
 import AccessoryDetailsModal from './AccessoryDetailsModal';
 import { PrintBarcodeModal } from './PrintBarcodeModal';
-import { PrintReceiptTemplate } from './PrintReceiptTemplate';
+import { PrintReceiptTemplate } from './SalesReceiptPrinter';
 import { useReactToPrint } from 'react-to-print';
 import { useSettings } from '../contexts/SettingsContext';
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { 
   Download, FileText, Printer, CheckCircle2, XCircle, Search, AlertCircle, CornerDownLeft, DollarSign, Filter, RefreshCcw, Wrench, X, Tag, User, MapPin, Phone
@@ -9,7 +9,7 @@ import { AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { useReactToPrint } from 'react-to-print';
 import { useSettings } from '../contexts/SettingsContext';
-import { PrintReceiptTemplate } from './PrintReceiptTemplate';
+import { PrintReceiptTemplate } from './SalesReceiptPrinter';
 import { PrintReportTemplate } from './PrintReportTemplate';
 
 const SUPABASE_URL = 'https://hoohxkrrndtfpwsrnpyr.supabase.co';
