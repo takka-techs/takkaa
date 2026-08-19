@@ -8,15 +8,16 @@ import { PrintCashReceiptTemplate } from './PrintCashReceiptTemplate';
 import { PrintConsolidatedInvoiceTemplate } from './PrintConsolidatedInvoiceTemplate';
 import { format, parseISO } from 'date-fns';
 import InstallmentContracts from './Installments/InstallmentContracts';
-import { 
-  Users, Search, Plus, Download, Upload, 
+import {
+  Users, Search, Plus, Download, Upload,
   Trash2, Edit, Eye, Filter, RefreshCw,
   Phone, MapPin, Calendar, CreditCard,
   TrendingUp, TrendingDown, DollarSign,
   MoreVertical, UserPlus, FileSpreadsheet,
   CheckCircle2, AlertCircle, Loader2, X,
   Printer, FileText, MessageCircle, Share2, Landmark, AlertTriangle
-, ReceiptText } from 'lucide-react';
+  , ReceiptText
+} from 'lucide-react';
 
 interface Customer {
   id: number;
@@ -46,104 +47,104 @@ export default function Customers() {
   });
 
   const fetchConsolidatedData = async () => {
-      if (!consolidatedCustomer) return;
-      setIsConsolidatedLoading(true);
-      try {
-          const tenantId = localStorage.getItem('tenant_id');
-          const token = localStorage.getItem('access_token');
-          const apikey = 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa';
+    if (!consolidatedCustomer) return;
+    setIsConsolidatedLoading(true);
+    try {
+      const tenantId = localStorage.getItem('tenant_id');
+      const token = localStorage.getItem('access_token');
+      const apikey = 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa';
 
-          let url = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Sales_Invoices?customer_name=eq.${encodeURIComponent(consolidatedCustomer.name)}&select=*,Sales_Items(*)`;
-          if (tenantId) url += `&tenant_id=eq.${tenantId}`;
+      let url = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Sales_Invoices?customer_name=eq.${encodeURIComponent(consolidatedCustomer.name)}&select=*,Sales_Items(*)`;
+      if (tenantId) url += `&tenant_id=eq.${tenantId}`;
 
-          const response = await fetch(url, {
-              headers: {
-                  'apikey': apikey,
-                  'Authorization': `Bearer ${token}`
-              }
-          });
+      const response = await fetch(url, {
+        headers: {
+          'apikey': apikey,
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-          if (!response.ok) throw new Error('Failed to fetch invoices');
-          const invoices = await response.json();
+      if (!response.ok) throw new Error('Failed to fetch invoices');
+      const invoices = await response.json();
 
-          // Filter by selected date
-          const targetDateStr = consolidatedDate;
-          const targetInvoices = invoices.filter(inv => {
-             // Invoices created_at format: 2026-07-16T12:00:00Z
-             const d = new Date(inv.created_at);
-             const offset = d.getTimezoneOffset() * 60000;
-             const localISOTime = (new Date(d.getTime() - offset)).toISOString().slice(0, 10);
-             return localISOTime === targetDateStr;
-          });
+      // Filter by selected date
+      const targetDateStr = consolidatedDate;
+      const targetInvoices = invoices.filter(inv => {
+        // Invoices created_at format: 2026-07-16T12:00:00Z
+        const d = new Date(inv.created_at);
+        const offset = d.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(d.getTime() - offset)).toISOString().slice(0, 10);
+        return localISOTime === targetDateStr;
+      });
 
-          // Aggregate Items
-          const itemsMap = new Map<string, any>();
-          let totalAmount = 0;
-          let paidAmount = 0;
-          let remainingAmount = 0;
+      // Aggregate Items
+      const itemsMap = new Map<string, any>();
+      let totalAmount = 0;
+      let paidAmount = 0;
+      let remainingAmount = 0;
 
-          for (const inv of targetInvoices) {
-              // skip cancelled or returned invoices if they are fully reversed
-              // for simplicity, let's include normal invoices.
-              if (inv.status === 'مرتجعة') continue;
-              
-              // Only add net amounts for valid sales
-              const invNet = Number(inv.net_amount ?? inv.total_amount) || 0;
-              const invPaid = Number(inv.paid_amount) || 0;
-              totalAmount += invNet;
-              paidAmount += invPaid;
-              remainingAmount += Number(inv.remaining_amount) || 0;
+      for (const inv of targetInvoices) {
+        // skip cancelled or returned invoices if they are fully reversed
+        // for simplicity, let's include normal invoices.
+        if (inv.status === 'مرتجعة') continue;
 
-              for (const item of (inv.Sales_Items || [])) {
-                  // if item was returned, its name might have "(مرتجع)"
-                  if ((item.product_name || item.item_name || '').includes('(مرتجع)')) continue; // skip returned items
+        // Only add net amounts for valid sales
+        const invNet = Number(inv.net_amount ?? inv.total_amount) || 0;
+        const invPaid = Number(inv.paid_amount) || 0;
+        totalAmount += invNet;
+        paidAmount += invPaid;
+        remainingAmount += Number(inv.remaining_amount) || 0;
 
-                  const key = item.product_id ? `${item.product_type}_${item.product_id}` : item.item_name;
-                  if (itemsMap.has(key)) {
-                      const ex = itemsMap.get(key);
-                      ex.quantity += Number(item.quantity) || 0;
-                      ex.total_price += Number(item.total_price) || 0;
-                  } else {
-                      itemsMap.set(key, {
-                          name: item.product_name || item.item_name,
-                          quantity: Number(item.quantity) || 0,
-                          unit_price: Number(item.unit_price) || 0,
-                          total_price: Number(item.total_price) || 0,
-                          type: item.product_type || item.item_type,
-                          imei: item.imei
-                      });
-                  }
-              }
+        for (const item of (inv.Sales_Items || [])) {
+          // if item was returned, its name might have "(مرتجع)"
+          if ((item.product_name || item.item_name || '').includes('(مرتجع)')) continue; // skip returned items
+
+          const key = item.product_id ? `${item.product_type}_${item.product_id}` : item.item_name;
+          if (itemsMap.has(key)) {
+            const ex = itemsMap.get(key);
+            ex.quantity += Number(item.quantity) || 0;
+            ex.total_price += Number(item.total_price) || 0;
+          } else {
+            itemsMap.set(key, {
+              name: item.product_name || item.item_name,
+              quantity: Number(item.quantity) || 0,
+              unit_price: Number(item.unit_price) || 0,
+              total_price: Number(item.total_price) || 0,
+              type: item.product_type || item.item_type,
+              imei: item.imei
+            });
           }
-
-          setConsolidatedData({
-              customerName: consolidatedCustomer.name,
-              date: targetDateStr,
-              items: Array.from(itemsMap.values()),
-              totalAmount,
-              paidAmount,
-              remainingAmount
-          });
-
-      } catch (err) {
-          console.error(err);
-          alert('حدث خطأ أثناء جلب الفواتير المجمعة');
-      } finally {
-          setIsConsolidatedLoading(false);
+        }
       }
+
+      setConsolidatedData({
+        customerName: consolidatedCustomer.name,
+        date: targetDateStr,
+        items: Array.from(itemsMap.values()),
+        totalAmount,
+        paidAmount,
+        remainingAmount
+      });
+
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء جلب الفواتير المجمعة');
+    } finally {
+      setIsConsolidatedLoading(false);
+    }
   };
 
   useEffect(() => {
-      if (consolidatedCustomer) {
-          fetchConsolidatedData();
-      }
+    if (consolidatedCustomer) {
+      fetchConsolidatedData();
+    }
   }, [consolidatedCustomer, consolidatedDate]);
 
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all'); 
+  const [filterType, setFilterType] = useState('all');
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -153,6 +154,11 @@ export default function Customers() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+
+  // Bulk WhatsApp state
+  const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
+  const [bulkWhatsAppMessage, setBulkWhatsAppMessage] = useState('');
+  const [sentWhatsAppCustomerIds, setSentWhatsAppCustomerIds] = useState<number[]>([]);
 
   // New/Edit Customer form state
   const [formData, setFormData] = useState({
@@ -169,7 +175,7 @@ export default function Customers() {
   // Collect variables
   const [wallets, setWallets] = useState<any[]>([]);
   const [activeShift, setActiveShift] = useState<any>(null);
-  
+
   const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
   const [receiveData, setReceiveData] = useState({
     clientId: '',
@@ -182,13 +188,13 @@ export default function Customers() {
   // Statement variables
   const [statementData, setStatementData] = useState<any[]>([]);
   const [isStatementLoading, setIsStatementLoading] = useState(false);
-  const [statementFilter, setStatementFilter] = useState('all'); 
+  const [statementFilter, setStatementFilter] = useState('all');
   const [statementDateFrom, setStatementDateFrom] = useState('');
   const [statementDateTo, setStatementDateTo] = useState('');
   const [customerViewTab, setCustomerViewTab] = useState<'statement' | 'installments'>('statement');
-  
+
   const { settings } = useSettings();
-  
+
   // --- Printing Refs ---
   const statementPrintRef = useRef<HTMLDivElement>(null);
   const cashReceiptPrintRef = useRef<HTMLDivElement>(null);
@@ -226,45 +232,45 @@ export default function Customers() {
       const baseUrl = 'https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1';
 
       const customerNameEnc = encodeURIComponent(customer.name);
-      
+
       const invoicesRes = await fetch(`${baseUrl}/Sales_Invoices?customer_name=eq.${customerNameEnc}&select=*`, {
-         headers: { 'apikey': apiKey, 'Authorization': `Bearer ${token}` }
+        headers: { 'apikey': apiKey, 'Authorization': `Bearer ${token}` }
       });
       const txsRes = await fetch(`${baseUrl}/treasury_transactions?select=*`, {
-         headers: { 'apikey': apiKey, 'Authorization': `Bearer ${token}` }
+        headers: { 'apikey': apiKey, 'Authorization': `Bearer ${token}` }
       });
 
       const invoices = invoicesRes.ok ? await invoicesRes.json() : [];
       let txs = txsRes.ok ? await txsRes.json() : [];
 
       // Filter txs: category needs to match and description should contain customer name
-      const clientTxs = txs.filter((tx: any) => 
+      const clientTxs = txs.filter((tx: any) =>
         tx.category === 'مقبوضات عملاء' && tx.description && tx.description.includes(customer.name)
       );
 
       const combined = [
-         ...invoices.map((inv: any) => ({
-             date: inv.created_at,
-             type: 'فاتورة',
-             description: `فاتورة مبيعات رقم #${inv.id || inv.invoice_number || ''}`,
-             debt: inv.net_amount || inv.total_amount || 0,
-             paid: inv.paid_amount || 0,
-             id: inv.id,
-             ref: `inv_${inv.id}`
-         })),
-         ...clientTxs.map((tx: any) => ({
-             date: tx.date || tx.created_at,
-             type: 'دفعة نقدية',
-             description: tx.description,
-             debt: 0,
-             paid: tx.amount || 0,
-             id: tx.id,
-             ref: `tx_${tx.id}`
-         }))
+        ...invoices.map((inv: any) => ({
+          date: inv.created_at,
+          type: 'فاتورة',
+          description: `فاتورة مبيعات رقم #${inv.id || inv.invoice_number || ''}`,
+          debt: inv.net_amount || inv.total_amount || 0,
+          paid: inv.paid_amount || 0,
+          id: inv.id,
+          ref: `inv_${inv.id}`
+        })),
+        ...clientTxs.map((tx: any) => ({
+          date: tx.date || tx.created_at,
+          type: 'دفعة نقدية',
+          description: tx.description,
+          debt: 0,
+          paid: tx.amount || 0,
+          id: tx.id,
+          ref: `tx_${tx.id}`
+        }))
       ];
 
-      combined.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      
+      combined.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
       let runningBalance = customer.initial_balance || 0; // if this is current, running balance backwards is hard. Let's just calculate "الرصيد" assuming initial is the starting. Wait, the `initial_balance` is updated with debt! It's actually the current balance.
       // Easiest is to set running balance from start. Wait, the DB updates `initial_balance` to be the running balance (decreased by payment, increased by debt). 
       // If we use `initial_balance` as starting, we need historical initial balance which we don't have.
@@ -272,8 +278,8 @@ export default function Customers() {
       // Since it's dynamic, let's calculate backwards from current balance.
       let currentBal = customer.initial_balance || 0;
       for (let i = combined.length - 1; i >= 0; i--) {
-         combined[i].balance = currentBal;
-         currentBal = currentBal - combined[i].debt + combined[i].paid; // Rollback
+        combined[i].balance = currentBal;
+        currentBal = currentBal - combined[i].debt + combined[i].paid; // Rollback
       }
 
       setStatementData(combined);
@@ -304,7 +310,7 @@ export default function Customers() {
         fetch(`${baseUrl}/wallets?select=*,branches(name)${branchSuffix}&tenant_id=eq.${tenantId}`, {
           headers: { 'apikey': apiKey, 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${baseUrl}/shifts?select=*${branchSuffix}&user_id=eq.${userId}${(() => { const cStr = localStorage.getItem('active_cashier'); if (cStr) { try { const c = JSON.parse(cStr); if (c && c.role_level !== 1) return '&cashier_name=eq.' + encodeURIComponent(c.full_name || c.username || c.name || 'موظف مبيعات'); else if (c && c.role_level === 1) return (c.full_name || c.username || c.name) ? `&or=(cashier_name.is.null,cashier_name.eq.${encodeURIComponent(c.full_name || c.username || c.name)})` : '&cashier_name=is.null'; } catch (e) {} } return '&cashier_name=is.null'; })()}&status=eq.open&order=created_at.desc&limit=1`, {
+        fetch(`${baseUrl}/shifts?select=*${branchSuffix}&user_id=eq.${userId}${(() => { const cStr = localStorage.getItem('active_cashier'); if (cStr) { try { const c = JSON.parse(cStr); if (c && c.role_level !== 1) return '&cashier_name=eq.' + encodeURIComponent(c.full_name || c.username || c.name || 'موظف مبيعات'); else if (c && c.role_level === 1) return (c.full_name || c.username || c.name) ? `&or=(cashier_name.is.null,cashier_name.eq.${encodeURIComponent(c.full_name || c.username || c.name)})` : '&cashier_name=is.null'; } catch (e) { } } return '&cashier_name=is.null'; })()}&status=eq.open&order=created_at.desc&limit=1`, {
           headers: { 'apikey': apiKey, 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -316,7 +322,7 @@ export default function Customers() {
         const shiftsData = await shiftsRes.json();
         setActiveShift(shiftsData.length > 0 && shiftsData[0].status === 'open' ? shiftsData[0] : null);
       }
-    } catch(err) {
+    } catch (err) {
       console.error(err);
     }
   };
@@ -430,7 +436,7 @@ export default function Customers() {
       });
 
       alert('تم استلام الدفعة بنجاح!');
-      const receiptIdStr = `REC-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}-${Math.floor(Math.random()*10000).toString().padStart(4,'0')}`;
+      const receiptIdStr = `REC-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
       handlePrintCashReceipt({
         receiptId: receiptIdStr,
         type: 'قبض',
@@ -441,7 +447,7 @@ export default function Customers() {
         notes: receiveData.notes,
         cashierName: localStorage.getItem('active_cashier') ? (JSON.parse(localStorage.getItem('active_cashier') || '{}')).name || (JSON.parse(localStorage.getItem('active_cashier') || '{}')).username : localStorage.getItem('admin_active') ? 'المدير' : 'كاشير'
       });
-      
+
       setIsReceiveModalOpen(false);
       setReceiveData({
         clientId: '',
@@ -497,7 +503,7 @@ export default function Customers() {
       });
 
       if (!response.ok) throw new Error('فشل إضافة العميل');
-      
+
       setIsAddModalOpen(false);
       resetForm();
       fetchCustomers();
@@ -547,7 +553,7 @@ export default function Customers() {
       });
 
       if (!response.ok) throw new Error('فشل تحديث بيانات العميل');
-      
+
       setEditCustomer(null);
       resetForm();
       fetchCustomers();
@@ -629,7 +635,7 @@ export default function Customers() {
         const token = localStorage.getItem('access_token');
         const apiKey = 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa';
         const baseUrl = 'https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1';
-        
+
         const userDataStr = localStorage.getItem('user_data');
         const userData = userDataStr ? JSON.parse(userDataStr) : null;
 
@@ -657,7 +663,7 @@ export default function Customers() {
         });
 
         if (!response.ok) throw new Error('فشل استيراد البيانات');
-        
+
         alert(`تم استيراد ${formattedData.length} عميل بنجاح`);
         fetchCustomers();
       } catch (err: any) {
@@ -684,16 +690,16 @@ export default function Customers() {
   };
 
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = 
+    const matchesSearch =
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (customer.phone && customer.phone.includes(searchTerm));
-    
+
     const balance = (customer.initial_balance || 0) + (customer.total_debt || 0);
 
     if (filterType === 'debtors') return matchesSearch && balance > 0; // In POS context usually debt > 0 means they owe you
     if (filterType === 'creditors') return matchesSearch && balance < 0;
     if (filterType === 'balanced') return matchesSearch && balance === 0;
-    
+
     if (filterType === 'vip') return matchesSearch && customer.category === 'VIP ⭐';
     if (filterType === 'new') return matchesSearch && customer.category === 'جديد 🆕';
     if (filterType === 'delayed') return matchesSearch && customer.category === 'متأخر ⚠️';
@@ -704,12 +710,12 @@ export default function Customers() {
   const totals = {
     count: customers.length,
     totalDebt: customers.reduce((sum, c) => {
-       const balance = (c.initial_balance || 0) + (c.total_debt || 0);
-       return sum + (balance > 0 ? balance : 0);
+      const balance = (c.initial_balance || 0) + (c.total_debt || 0);
+      return sum + (balance > 0 ? balance : 0);
     }, 0),
     totalCredit: customers.reduce((sum, c) => {
-       const balance = (c.initial_balance || 0) + (c.total_debt || 0);
-       return sum + (balance < 0 ? Math.abs(balance) : 0);
+      const balance = (c.initial_balance || 0) + (c.total_debt || 0);
+      return sum + (balance < 0 ? Math.abs(balance) : 0);
     }, 0),
     newThisMonth: customers.filter(c => {
       const date = new Date(c.created_at);
@@ -731,22 +737,22 @@ export default function Customers() {
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">إدارة بيانات العملاء والديون والتحصيلات</p>
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImportExcel} 
-            className="hidden" 
-            accept=".xlsx, .xls, .csv" 
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportExcel}
+            className="hidden"
+            accept=".xlsx, .xls, .csv"
           />
-          <button 
+          <button
             onClick={handleExportExcel}
             className="flex items-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-4 py-2.5 rounded-xl text-sm font-bold border border-indigo-500/20 transition-all"
           >
             <Download className="w-4 h-4" /> تصدير
           </button>
-          <button 
+          <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
             className="flex items-center gap-2 bg-slate-500/10 hover:bg-slate-500/20 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-500/20 transition-all disabled:opacity-50"
@@ -754,7 +760,13 @@ export default function Customers() {
             {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             استيراد
           </button>
-          <button 
+          <button
+            onClick={() => setIsBulkWhatsAppOpen(true)}
+            className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 px-4 py-2.5 rounded-xl text-sm font-bold border border-green-500/20 transition-all"
+          >
+            <MessageCircle className="w-4 h-4" /> رسالة جماعية
+          </button>
+          <button
             onClick={() => {
               resetForm();
               setIsAddModalOpen(true);
@@ -778,15 +790,15 @@ export default function Customers() {
       <div className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-[2rem] p-3 flex flex-col lg:flex-row items-center gap-4 mx-4 sm:mx-0">
         <div className="relative flex-1 w-full lg:w-auto">
           <Search className="w-4 h-4 text-slate-500 absolute top-1/2 start-4 -translate-y-1/2" />
-          <input 
-            type="text" 
-            placeholder="ابحث بالاسم أو رقم الهاتف..." 
+          <input
+            type="text"
+            placeholder="ابحث بالاسم أو رقم الهاتف..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-100 dark:border-white/10 rounded-2xl py-3.5 ps-12 pe-4 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all"
           />
         </div>
-        
+
         <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-[#080c13] rounded-2xl border border-slate-100 dark:border-white/5 overflow-x-auto w-full lg:w-auto shrink-0 no-scrollbar">
           <FilterButton active={filterType === 'vip'} onClick={() => setFilterType('vip')} label="VIP ⭐" color="amber" />
           <FilterButton active={filterType === 'new'} onClick={() => setFilterType('new')} label="جديد" color="blue" />
@@ -797,7 +809,7 @@ export default function Customers() {
           <FilterButton active={filterType === 'creditors'} onClick={() => setFilterType('creditors')} label="دائنين" color="emerald" />
           <FilterButton active={filterType === 'balanced'} onClick={() => setFilterType('balanced')} label="متوازن" color="blue" />
           <div className="w-[1px] h-4 bg-slate-200 dark:bg-white/10 mx-1" />
-          <button 
+          <button
             onClick={fetchCustomers}
             className="p-2.5 text-slate-500 hover:text-indigo-500 dark:text-slate-400 hover:dark:text-indigo-400 transition-all"
           >
@@ -891,15 +903,15 @@ export default function Customers() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
-                        
-                        <button 
+
+                        <button
                           onClick={() => setConsolidatedCustomer(customer)}
                           className="p-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 rounded-lg transition-all border border-purple-500/10"
                           title="فاتورة مجمعة"
                         >
                           <ReceiptText className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             const url = `https://wa.me/2${customer.phone}`;
                             window.open(url, '_blank');
@@ -909,7 +921,7 @@ export default function Customers() {
                         >
                           <MessageCircle className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             setReceiveData({ ...receiveData, clientId: customer.id.toString(), amount: '' });
                             setIsReceiveModalOpen(true);
@@ -919,17 +931,17 @@ export default function Customers() {
                         >
                           <DollarSign className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
-                             setViewCustomer(customer);
-                             fetchStatementData(customer);
+                            setViewCustomer(customer);
+                            fetchStatementData(customer);
                           }}
                           className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-lg transition-all border border-blue-500/10"
                           title="عرض كشف الحساب"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             setEditCustomer(customer);
                             setFormData({
@@ -947,7 +959,7 @@ export default function Customers() {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           disabled={isDeleting === customer.id}
                           onClick={() => setDeleteId(customer.id)}
                           className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-all border border-red-500/10 disabled:opacity-50"
@@ -962,7 +974,7 @@ export default function Customers() {
               </tbody>
             </table>
           </div>
-          
+
           <div className="p-6 bg-slate-50 dark:bg-[#0d1117]/50 border-t border-slate-200 dark:border-white/5 flex items-center justify-between">
             <p className="text-sm text-slate-500">عرض {filteredCustomers.length} من أصل {customers.length} عميل</p>
             <div className="flex gap-2">
@@ -974,18 +986,137 @@ export default function Customers() {
         </div>
       )}
 
+      {/* Bulk WhatsApp Modal */}
+      <AnimatePresence>
+        {isBulkWhatsAppOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-[#11151c] rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20">
+                    <MessageCircle className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">رسالة واتساب جماعية</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">أرسل رسالة لعملائك</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsBulkWhatsAppOpen(false)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">نص الرسالة</label>
+                  <textarea
+                    value={bulkWhatsAppMessage}
+                    onChange={(e) => setBulkWhatsAppMessage(e.target.value)}
+                    rows={4}
+                    className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-green-500/50 transition-all resize-none"
+                    placeholder="اكتب رسالتك هنا..."
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">قائمة العملاء ({filteredCustomers.filter(c => c.phone).length})</label>
+                    <button
+                      onClick={async () => {
+                        const pendingCustomers = filteredCustomers.filter(c => c.phone && !sentWhatsAppCustomerIds.includes(c.id));
+                        if (pendingCustomers.length === 0) {
+                          alert('تم الإرسال لجميع العملاء في القائمة.');
+                          return;
+                        }
+                        for (const customer of pendingCustomers) {
+                          const msg = encodeURIComponent(bulkWhatsAppMessage);
+                          const phone = customer.phone.replace(/\D/g, '');
+                          const prefix = phone.startsWith('20') ? '' : '2';
+                          // Use whatsapp:// protocol to force open the desktop app
+                          const url = `whatsapp://send?phone=${prefix}${phone}&text=${msg}`;
+
+                          // Open the link
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.click();
+
+                          // Add a delay so WhatsApp Desktop has time to open the chat and load the pre-filled text before we move to the next contact
+                          await new Promise(resolve => setTimeout(resolve, 1500));
+                        }
+                        setSentWhatsAppCustomerIds(prev => [...prev, ...pendingCustomers.map(c => c.id)]);
+                      }}
+                      className="px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/20 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> إرسال للكل
+                    </button>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
+                    <div className="max-h-60 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                      {filteredCustomers.filter(c => c.phone).map(customer => {
+                        const isSent = sentWhatsAppCustomerIds.includes(customer.id);
+                        return (
+                          <div key={customer.id} className="flex items-center justify-between bg-white dark:bg-[#11151c] border border-slate-100 dark:border-white/5 p-3 rounded-lg">
+                            <div>
+                              <div className="text-sm font-bold text-slate-900 dark:text-white">{customer.name}</div>
+                              <div className="text-xs text-slate-500 font-mono mt-0.5">{customer.phone}</div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const msg = encodeURIComponent(bulkWhatsAppMessage);
+                                const phone = customer.phone.replace(/\D/g, '');
+                                const prefix = phone.startsWith('20') ? '' : '2';
+                                // Use whatsapp:// protocol
+                                const url = `whatsapp://send?phone=${prefix}${phone}&text=${msg}`;
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.click();
+                                if (!isSent) setSentWhatsAppCustomerIds([...sentWhatsAppCustomerIds, customer.id]);
+                              }}
+                              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isSent ? 'bg-slate-100 dark:bg-white/5 text-slate-500 border border-slate-200 dark:border-white/10' : 'bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/20'}`}
+                            >
+                              {isSent ? <CheckCircle2 className="w-4 h-4" /> : <MessageCircle className="w-4 h-4" />}
+                              {isSent ? 'تم الإرسال' : 'إرسال'}
+                            </button>
+                          </div>
+                        )
+                      })}
+                      {filteredCustomers.filter(c => c.phone).length === 0 && (
+                        <div className="p-4 text-center text-sm text-slate-500">لا يوجد عملاء بأرقام هواتف مسجلة</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Add / Edit Client Modal - Redesigned */}
       <AnimatePresence>
         {(isAddModalOpen || editCustomer) && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => { setIsAddModalOpen(false); setEditCustomer(null); }}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 30 }}
@@ -997,7 +1128,7 @@ export default function Customers() {
                   <UserPlus className="w-6 h-6 text-indigo-500" />
                   {editCustomer ? 'تعديل بيانات عميل' : 'إضافة عميل جديد'}
                 </h3>
-                <button 
+                <button
                   onClick={() => { setIsAddModalOpen(false); setEditCustomer(null); }}
                   className="w-10 h-10 bg-slate-200 dark:bg-white/5 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors"
                 >
@@ -1012,11 +1143,11 @@ export default function Customers() {
                     <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1 flex items-center gap-1.5">
                       الاسم <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full bg-slate-50 dark:bg-[#1a1f28] border border-slate-200 dark:border-white/5 rounded-xl py-4 px-5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all"
                       placeholder="أدخل اسم العميل..."
                     />
@@ -1026,10 +1157,10 @@ export default function Customers() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">رقم الهاتف</label>
-                      <input 
-                        type="tel" 
+                      <input
+                        type="tel"
                         value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         className="w-full bg-slate-50 dark:bg-[#1a1f28] border border-slate-200 dark:border-white/5 rounded-xl py-4 px-5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all font-mono"
                         placeholder="01012345678"
                       />
@@ -1037,8 +1168,8 @@ export default function Customers() {
                     {editCustomer ? (
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">إجمالي المديونية من المبيعات</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           step="0.01"
                           disabled
                           value={editCustomer.total_debt || 0}
@@ -1055,17 +1186,17 @@ export default function Customers() {
                       <div className="flex gap-2">
                         <select
                           value={formData.balance_type}
-                          onChange={(e) => setFormData({...formData, balance_type: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, balance_type: e.target.value })}
                           className="bg-slate-50 dark:bg-[#1a1f28] border border-slate-200 dark:border-white/5 rounded-xl py-4 px-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-all cursor-pointer font-bold w-1/3"
                         >
                           <option value="debt">عليه للمحل</option>
                           <option value="credit">له عند المحل</option>
                         </select>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           step="0.01"
                           value={formData.initial_balance}
-                          onChange={(e) => setFormData({...formData, initial_balance: Math.abs(parseFloat(e.target.value) || 0)})}
+                          onChange={(e) => setFormData({ ...formData, initial_balance: Math.abs(parseFloat(e.target.value) || 0) })}
                           className="w-2/3 bg-slate-50 dark:bg-[#1a1f28] border border-slate-200 dark:border-white/5 rounded-xl py-4 px-5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all font-mono"
                           placeholder="0"
                           min="0"
@@ -1073,14 +1204,14 @@ export default function Customers() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Category & Credit Limit Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">التصنيف</label>
-                      <select 
+                      <select
                         value={formData.category}
-                        onChange={(e) => setFormData({...formData, category: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                         className="w-full bg-slate-50 dark:bg-[#1a1f28] border border-slate-200 dark:border-white/5 rounded-xl py-4 px-5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
                       >
                         <option value="">بدون تصنيف</option>
@@ -1091,11 +1222,11 @@ export default function Customers() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">حد الائتمان</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         step="0.01"
                         value={formData.credit_limit}
-                        onChange={(e) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})}
+                        onChange={(e) => setFormData({ ...formData, credit_limit: parseFloat(e.target.value) || 0 })}
                         className="w-full bg-slate-50 dark:bg-[#1a1f28] border border-slate-200 dark:border-white/5 rounded-xl py-4 px-5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all font-mono"
                         placeholder="0"
                       />
@@ -1105,10 +1236,10 @@ export default function Customers() {
                   {/* Address Input */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">العنوان</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       className="w-full bg-slate-50 dark:bg-[#1a1f28] border border-slate-200 dark:border-white/5 rounded-xl py-4 px-5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all"
                       placeholder="القاهرة - المعادي"
                     />
@@ -1117,9 +1248,9 @@ export default function Customers() {
                   {/* Notes Area */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">ملاحظات</label>
-                    <textarea 
+                    <textarea
                       value={formData.notes}
-                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       rows={3}
                       className="w-full bg-slate-50 dark:bg-[#1a1f28] border border-slate-200 dark:border-white/5 rounded-xl py-4 px-5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all resize-none"
                       placeholder="أي ملاحظات إضافية..."
@@ -1128,14 +1259,14 @@ export default function Customers() {
 
                   {/* Form Footer */}
                   <div className="flex items-center gap-3 pt-4">
-                    <button 
+                    <button
                       type="submit"
                       className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       <Plus className="w-5 h-5" />
                       {editCustomer ? 'حفظ التغييرات' : 'حفظ'}
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => { setIsAddModalOpen(false); setEditCustomer(null); }}
                       className="px-8 bg-slate-800 hover:bg-slate-700 text-slate-300 py-4 rounded-xl text-sm font-bold transition-all active:scale-[0.98]"
@@ -1154,14 +1285,14 @@ export default function Customers() {
       <AnimatePresence>
         {viewCustomer && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setViewCustomer(null)}
               className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 50 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 50 }}
@@ -1173,7 +1304,7 @@ export default function Customers() {
                   <FileText className="w-6 h-6 text-indigo-500" />
                   كشف حساب العميل
                 </h3>
-                <button 
+                <button
                   onClick={() => setViewCustomer(null)}
                   className="w-10 h-10 bg-slate-200 dark:bg-white/5 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-red-400 transition-colors"
                 >
@@ -1192,18 +1323,18 @@ export default function Customers() {
                       {viewCustomer.phone}
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-8 md:gap-14">
                     <div className="text-center">
                       <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">إجمالي المبيعات</div>
                       <div className="text-xl font-black text-slate-900 dark:text-white font-mono">
-                         {statementData.reduce((sum, item) => sum + item.debt, 0).toLocaleString()} <span className="text-[10px] text-slate-400 dark:text-slate-500">ج.م</span>
+                        {statementData.reduce((sum, item) => sum + item.debt, 0).toLocaleString()} <span className="text-[10px] text-slate-400 dark:text-slate-500">ج.م</span>
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">المبلغ المدفوع</div>
                       <div className="text-xl font-black text-slate-900 dark:text-white font-mono">
-                         {statementData.reduce((sum, item) => sum + item.paid, 0).toLocaleString()} <span className="text-[10px] text-slate-400 dark:text-slate-500">ج.م</span>
+                        {statementData.reduce((sum, item) => sum + item.paid, 0).toLocaleString()} <span className="text-[10px] text-slate-400 dark:text-slate-500">ج.م</span>
                       </div>
                     </div>
                     <div className="text-center">
@@ -1237,76 +1368,76 @@ export default function Customers() {
                     <div className="flex flex-col lg:flex-row items-center gap-4 bg-slate-50 dark:bg-white/5 p-4 rounded-3xl border border-slate-200 dark:border-white/5">
                       <div className="flex items-center gap-4 flex-1 w-full lg:w-auto overflow-x-auto no-scrollbar pb-2 lg:pb-0">
                         <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-bold text-slate-500">من:</span>
-                      <input type="date" className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" />
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-bold text-slate-500">إلى:</span>
-                      <input type="date" className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" />
-                    </div>
-                    <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/20 shrink-0">تطبيق 🔍</button>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 p-1 bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-2xl shrink-0">
-                    {['أسبوع', 'شهر', '3 شهور', 'سنة', 'الكل'].map((opt, i) => (
-                      <button key={opt} className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all ${i === 4 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-500 hover:text-indigo-400'}`}>
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                          <span className="text-xs font-bold text-slate-500">من:</span>
+                          <input type="date" className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs font-bold text-slate-500">إلى:</span>
+                          <input type="date" className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-600/20 shrink-0">تطبيق 🔍</button>
+                      </div>
 
-                {/* Transactions Table */}
-                <div className="bg-slate-50 dark:bg-[#1a1f28]/30 border border-slate-200 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-start border-collapse text-sm">
-                      <thead>
-                        <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/5">
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">التاريخ</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">النوع</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">البيان</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">عليه</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">دفع</th>
-                          <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">الرصيد</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-                        {isStatementLoading ? (
-                          <tr>
-                            <td colSpan={6} className="text-center py-8">
-                               <Loader2 className="w-6 h-6 animate-spin text-indigo-500 mx-auto" />
-                            </td>
-                          </tr>
-                        ) : statementData.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="text-center py-8 text-slate-500 font-bold">
-                               لا توجد حركات لهذا العميل
-                            </td>
-                          </tr>
-                        ) : statementData.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-slate-100 dark:hover:bg-white/[0.02] transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-mono text-xs">
-                              {new Date(item.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-3 py-1 text-[9px] font-bold rounded-full border ${item.type === 'فاتورة' ? 'bg-red-500/10 text-red-500 border-red-500/10' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/10'}`}>
-                                {item.type}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white font-medium">{item.description}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white font-black font-mono">
-                              {item.debt > 0 ? item.debt.toLocaleString() : <span className="text-slate-400 text-xs italic">---</span>}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white font-black font-mono">
-                              {item.paid > 0 ? item.paid.toLocaleString() : <span className="text-slate-400 text-xs italic">---</span>}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-300 font-mono font-bold">{item.balance?.toLocaleString() || 0}</td>
-                          </tr>
+                      <div className="flex items-center gap-2 p-1 bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-2xl shrink-0">
+                        {['أسبوع', 'شهر', '3 شهور', 'سنة', 'الكل'].map((opt, i) => (
+                          <button key={opt} className={`px-4 py-2 rounded-xl text-[10px] font-bold transition-all ${i === 4 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-500 hover:text-indigo-400'}`}>
+                            {opt}
+                          </button>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                      </div>
+                    </div>
+
+                    {/* Transactions Table */}
+                    <div className="bg-slate-50 dark:bg-[#1a1f28]/30 border border-slate-200 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-start border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/5">
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">التاريخ</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">النوع</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">البيان</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">عليه</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">دفع</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-start whitespace-nowrap">الرصيد</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 dark:divide-white/5">
+                            {isStatementLoading ? (
+                              <tr>
+                                <td colSpan={6} className="text-center py-8">
+                                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500 mx-auto" />
+                                </td>
+                              </tr>
+                            ) : statementData.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="text-center py-8 text-slate-500 font-bold">
+                                  لا توجد حركات لهذا العميل
+                                </td>
+                              </tr>
+                            ) : statementData.map((item, idx) => (
+                              <tr key={idx} className="hover:bg-slate-100 dark:hover:bg-white/[0.02] transition-colors">
+                                <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-mono text-xs">
+                                  {new Date(item.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`px-3 py-1 text-[9px] font-bold rounded-full border ${item.type === 'فاتورة' ? 'bg-red-500/10 text-red-500 border-red-500/10' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/10'}`}>
+                                    {item.type}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white font-medium">{item.description}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white font-black font-mono">
+                                  {item.debt > 0 ? item.debt.toLocaleString() : <span className="text-slate-400 text-xs italic">---</span>}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white font-black font-mono">
+                                  {item.paid > 0 ? item.paid.toLocaleString() : <span className="text-slate-400 text-xs italic">---</span>}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-300 font-mono font-bold">{item.balance?.toLocaleString() || 0}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </>
                 ) : (
                   <div className="bg-slate-50 dark:bg-[#1a1f28]/50 border border-slate-200 dark:border-white/5 rounded-3xl p-6 relative min-h-[400px]">
@@ -1317,7 +1448,7 @@ export default function Customers() {
 
               {/* Modal Footer */}
               <div className="bg-slate-50 dark:bg-[#1a1f28] p-6 border-t border-slate-200 dark:border-white/5 flex flex-wrap items-center justify-center md:justify-start gap-4 shrink-0">
-                <button 
+                <button
                   onClick={() => setViewCustomer(null)}
                   className="px-8 py-3.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl text-xs font-bold transition-all"
                 >
@@ -1326,7 +1457,7 @@ export default function Customers() {
                 <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3.5 rounded-2xl text-xs font-bold transition-all shadow-lg shadow-emerald-500/20">
                   <Download className="w-4 h-4" /> تصدير PDF
                 </button>
-                <button 
+                <button
                   onClick={handlePrintStatement}
                   className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-8 py-3.5 rounded-2xl text-xs font-bold transition-all shadow-lg shadow-blue-500/20"
                 >
@@ -1335,7 +1466,7 @@ export default function Customers() {
                 <button className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3.5 rounded-2xl text-xs font-bold transition-all shadow-lg shadow-emerald-600/20">
                   <FileSpreadsheet className="w-4 h-4" /> تصدير Excel
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     const url = `https://wa.me/2${viewCustomer.phone}`;
                     window.open(url, '_blank');
@@ -1350,19 +1481,19 @@ export default function Customers() {
         )}
       </AnimatePresence>
 
-      
+
       {/* Consolidated Invoice Modal */}
       <AnimatePresence>
         {consolidatedCustomer && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
               onClick={() => { setConsolidatedCustomer(null); setConsolidatedData(null); }}
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1379,7 +1510,7 @@ export default function Customers() {
                     <p className="text-sm text-slate-500">{consolidatedCustomer.name}</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => { setConsolidatedCustomer(null); setConsolidatedData(null); }}
                   className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                 >
@@ -1388,70 +1519,70 @@ export default function Customers() {
               </div>
 
               <div className="p-6 border-b border-slate-100 dark:border-white/5 flex gap-4 items-center bg-slate-50 dark:bg-[#080c13]">
-                  <label className="font-bold text-slate-700 dark:text-slate-300">التاريخ:</label>
-                  <input 
-                      type="date" 
-                      value={consolidatedDate}
-                      onChange={(e) => setConsolidatedDate(e.target.value)}
-                      className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 font-bold focus:outline-none focus:border-purple-500"
-                  />
+                <label className="font-bold text-slate-700 dark:text-slate-300">التاريخ:</label>
+                <input
+                  type="date"
+                  value={consolidatedDate}
+                  onChange={(e) => setConsolidatedDate(e.target.value)}
+                  className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 font-bold focus:outline-none focus:border-purple-500"
+                />
               </div>
 
               <div className="p-6 overflow-y-auto flex-1 bg-slate-50 dark:bg-[#080c13]">
-                  {isConsolidatedLoading ? (
-                      <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-purple-500" /></div>
-                  ) : consolidatedData ? (
-                      consolidatedData.items.length > 0 ? (
-                          <div className="space-y-4">
-                              <div className="bg-white dark:bg-[#0d1117] rounded-xl p-4 border border-slate-200 dark:border-white/10">
-                                  <table className="w-full text-sm">
-                                      <thead>
-                                          <tr className="border-b border-slate-200 dark:border-white/10">
-                                              <th className="text-start py-2">الصنف</th>
-                                              <th className="text-center py-2">الكمية</th>
-                                              <th className="text-end py-2">الإجمالي</th>
-                                          </tr>
-                                      </thead>
-                                      <tbody>
-                                          {consolidatedData.items.map((item, idx) => (
-                                              <tr key={idx} className="border-b border-slate-100 dark:border-white/5">
-                                                  <td className="py-3 font-bold">{item.name} {item.imei && <span className="block text-xs font-mono text-slate-400">{item.imei}</span>}</td>
-                                                  <td className="py-3 text-center font-bold">{item.quantity}</td>
-                                                  <td className="py-3 text-end font-bold font-mono">{item.total_price.toLocaleString()} ج.م</td>
-                                              </tr>
-                                          ))}
-                                      </tbody>
-                                  </table>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4">
-                                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-500/20">
-                                      <p className="text-sm text-blue-600 dark:text-blue-400 font-bold mb-1">إجمالي الفواتير</p>
-                                      <p className="text-xl font-black font-mono text-blue-700 dark:text-blue-300">{consolidatedData.totalAmount.toLocaleString()} ج.م</p>
-                                  </div>
-                                  <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
-                                      <p className="text-sm text-emerald-600 dark:text-emerald-400 font-bold mb-1">المدفوع</p>
-                                      <p className="text-xl font-black font-mono text-emerald-700 dark:text-emerald-300">{consolidatedData.paidAmount.toLocaleString()} ج.م</p>
-                                  </div>
-                                  <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-500/20">
-                                      <p className="text-sm text-orange-600 dark:text-orange-400 font-bold mb-1">المتبقي</p>
-                                      <p className="text-xl font-black font-mono text-orange-700 dark:text-orange-300">{consolidatedData.remainingAmount.toLocaleString()} ج.م</p>
-                                  </div>
-                              </div>
-                          </div>
-                      ) : (
-                          <div className="text-center py-10 text-slate-500 font-bold">لا توجد مبيعات في هذا اليوم</div>
-                      )
-                  ) : null}
+                {isConsolidatedLoading ? (
+                  <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-purple-500" /></div>
+                ) : consolidatedData ? (
+                  consolidatedData.items.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="bg-white dark:bg-[#0d1117] rounded-xl p-4 border border-slate-200 dark:border-white/10">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-200 dark:border-white/10">
+                              <th className="text-start py-2">الصنف</th>
+                              <th className="text-center py-2">الكمية</th>
+                              <th className="text-end py-2">الإجمالي</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {consolidatedData.items.map((item, idx) => (
+                              <tr key={idx} className="border-b border-slate-100 dark:border-white/5">
+                                <td className="py-3 font-bold">{item.name} {item.imei && <span className="block text-xs font-mono text-slate-400">{item.imei}</span>}</td>
+                                <td className="py-3 text-center font-bold">{item.quantity}</td>
+                                <td className="py-3 text-end font-bold font-mono">{item.total_price.toLocaleString()} ج.م</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-500/20">
+                          <p className="text-sm text-blue-600 dark:text-blue-400 font-bold mb-1">إجمالي الفواتير</p>
+                          <p className="text-xl font-black font-mono text-blue-700 dark:text-blue-300">{consolidatedData.totalAmount.toLocaleString()} ج.م</p>
+                        </div>
+                        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
+                          <p className="text-sm text-emerald-600 dark:text-emerald-400 font-bold mb-1">المدفوع</p>
+                          <p className="text-xl font-black font-mono text-emerald-700 dark:text-emerald-300">{consolidatedData.paidAmount.toLocaleString()} ج.م</p>
+                        </div>
+                        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-500/20">
+                          <p className="text-sm text-orange-600 dark:text-orange-400 font-bold mb-1">المتبقي</p>
+                          <p className="text-xl font-black font-mono text-orange-700 dark:text-orange-300">{consolidatedData.remainingAmount.toLocaleString()} ج.م</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 text-slate-500 font-bold">لا توجد مبيعات في هذا اليوم</div>
+                  )
+                ) : null}
               </div>
 
               <div className="p-6 border-t border-slate-100 dark:border-white/5 flex gap-3">
-                <button 
+                <button
                   onClick={() => { setConsolidatedCustomer(null); setConsolidatedData(null); }}
                   className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-white rounded-xl font-bold transition-all"
                 >
                   إغلاق
                 </button>
-                <button 
+                <button
                   onClick={handlePrintConsolidated}
                   disabled={!consolidatedData || consolidatedData.items.length === 0}
                   className="flex-1 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
@@ -1467,21 +1598,21 @@ export default function Customers() {
 
       {/* Hidden print component */}
       <div style={{ display: 'none' }}>
-         <PrintConsolidatedInvoiceTemplate ref={consolidatedPrintRef} data={consolidatedData} />
+        <PrintConsolidatedInvoiceTemplate ref={consolidatedPrintRef} data={consolidatedData} />
       </div>
 
       {/* Receive from Customer Modal */}
       <AnimatePresence>
         {isReceiveModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsReceiveModalOpen(false)}
               className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
@@ -1489,7 +1620,7 @@ export default function Customers() {
             >
               {/* Header */}
               <div className="p-6 bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
-                <button 
+                <button
                   onClick={() => setIsReceiveModalOpen(false)}
                   className="w-10 h-10 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 transition-all"
                 >
@@ -1517,47 +1648,47 @@ export default function Customers() {
                   <div className="space-y-2 text-end">
                     <label className="text-sm font-bold text-slate-500">الرصيد الحالي</label>
                     <div className="relative">
-                       <input 
-                         type="text" 
-                         disabled
-                         value={
-                           (() => {
-                             const c = customers.find(x => x.id.toString() === receiveData.clientId.toString());
-                             return c ? `${((c.initial_balance || 0) + (c.total_debt || 0)).toLocaleString()} ج.م` : '0 ج.م';
-                           })()
-                         } 
-                         className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-center text-lg text-slate-900 dark:text-white font-mono opacity-80" 
-                       />
+                      <input
+                        type="text"
+                        disabled
+                        value={
+                          (() => {
+                            const c = customers.find(x => x.id.toString() === receiveData.clientId.toString());
+                            return c ? `${((c.initial_balance || 0) + (c.total_debt || 0)).toLocaleString()} ج.م` : '0 ج.م';
+                          })()
+                        }
+                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-center text-lg text-slate-900 dark:text-white font-mono opacity-80"
+                      />
                     </div>
                   </div>
                   <div className="space-y-2 text-end">
                     <label className="text-sm font-bold text-slate-500">اسم العميل</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       disabled
-                      value={customers.find(c => c.id.toString() === receiveData.clientId.toString())?.name || ''} 
-                      className="w-full bg-white dark:bg-transparent border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-center text-lg text-slate-900 dark:text-white" 
+                      value={customers.find(c => c.id.toString() === receiveData.clientId.toString())?.name || ''}
+                      className="w-full bg-white dark:bg-transparent border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-center text-lg text-slate-900 dark:text-white"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2 text-end">
                   <label className="text-sm font-bold text-slate-500">المبلغ المحصّل <span className="text-red-500">*</span></label>
-                  <input 
-                    type="number" 
-                    value={receiveData.amount} 
-                    onChange={e => setReceiveData({...receiveData, amount: e.target.value})} 
-                    className="w-full bg-white dark:bg-transparent border border-slate-200 dark:border-white/10 rounded-xl py-4 px-5 text-lg text-start text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-all font-mono" 
-                    placeholder="أدخل المبلغ..." 
+                  <input
+                    type="number"
+                    value={receiveData.amount}
+                    onChange={e => setReceiveData({ ...receiveData, amount: e.target.value })}
+                    className="w-full bg-white dark:bg-transparent border border-slate-200 dark:border-white/10 rounded-xl py-4 px-5 text-lg text-start text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-all font-mono"
+                    placeholder="أدخل المبلغ..."
                     dir="ltr"
                   />
                 </div>
 
                 <div className="space-y-2 text-end">
                   <label className="text-sm font-bold text-slate-500 flex items-center justify-end gap-1"><Landmark className="w-4 h-4 text-slate-400" /> نوع المحفظة</label>
-                  <select 
-                    value={receiveData.walletId} 
-                    onChange={e => setReceiveData({...receiveData, walletId: e.target.value})} 
+                  <select
+                    value={receiveData.walletId}
+                    onChange={e => setReceiveData({ ...receiveData, walletId: e.target.value })}
                     className="w-full bg-white dark:bg-transparent border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-all text-end appearance-none cursor-pointer"
                     dir="rtl"
                   >
@@ -1571,24 +1702,24 @@ export default function Customers() {
                 </div>
 
                 <div className="space-y-2 text-end">
-                   <label className="text-sm font-bold text-slate-500 flex items-center justify-end gap-1">رصيد المحفظة المختارة <DollarSign className="w-4 h-4 text-amber-500" /></label>
-                   <div className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-center text-lg text-slate-900 dark:text-white font-black font-mono">
-                      {
-                        (() => {
-                           const w = wallets.find(x => x.id.toString() === receiveData.walletId.toString());
-                           return w ? `${w.balance.toLocaleString()} ج.م` : '0.00 ج.م';
-                        })()
-                      }
-                   </div>
+                  <label className="text-sm font-bold text-slate-500 flex items-center justify-end gap-1">رصيد المحفظة المختارة <DollarSign className="w-4 h-4 text-amber-500" /></label>
+                  <div className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-center text-lg text-slate-900 dark:text-white font-black font-mono">
+                    {
+                      (() => {
+                        const w = wallets.find(x => x.id.toString() === receiveData.walletId.toString());
+                        return w ? `${w.balance.toLocaleString()} ج.م` : '0.00 ج.م';
+                      })()
+                    }
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-end">
                   <label className="text-sm font-bold text-slate-500">ملاحظات</label>
-                  <input 
+                  <input
                     type="text"
-                    value={receiveData.notes} 
-                    onChange={e => setReceiveData({...receiveData, notes: e.target.value})} 
-                    className="w-full bg-white dark:bg-transparent border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-lg text-end text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-400" 
+                    value={receiveData.notes}
+                    onChange={e => setReceiveData({ ...receiveData, notes: e.target.value })}
+                    className="w-full bg-white dark:bg-transparent border border-slate-200 dark:border-white/10 rounded-xl py-4 px-4 text-lg text-end text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-400"
                     placeholder="سبب الدفع أو ملاحظات..."
                     dir="rtl"
                   />
@@ -1597,19 +1728,19 @@ export default function Customers() {
 
               {/* Actions */}
               <div className="p-6 bg-slate-50 dark:bg-white/5 border-t border-slate-200 dark:border-white/5 flex gap-4 justify-start">
-                 <button 
-                   onClick={() => setIsReceiveModalOpen(false)}
-                   className="px-8 py-4 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-700 dark:text-white rounded-xl font-bold transition-all shadow-sm"
-                 >
-                   إلغاء
-                 </button>
-                 <button 
-                   onClick={handleReceiveSubmit}
-                   disabled={isSubmitting}
-                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-4 font-bold transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
-                 >
-                   {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>تحصيل <DollarSign className="w-5 h-5 bg-white/20 p-0.5 rounded-full" /></>}
-                 </button>
+                <button
+                  onClick={() => setIsReceiveModalOpen(false)}
+                  className="px-8 py-4 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-700 dark:text-white rounded-xl font-bold transition-all shadow-sm"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleReceiveSubmit}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-4 font-bold transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>تحصيل <DollarSign className="w-5 h-5 bg-white/20 p-0.5 rounded-full" /></>}
+                </button>
               </div>
             </motion.div>
           </div>
@@ -1620,14 +1751,14 @@ export default function Customers() {
       <AnimatePresence>
         {deleteId && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setDeleteId(null)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 30 }}
@@ -1641,16 +1772,16 @@ export default function Customers() {
                 هل أنت متأكد من رغبتك في حذف هذا العميل نهائياً؟ <br />
                 <span className="text-red-500/50 text-xs mt-2 block font-bold">لا يمكن التراجع عن هذا الإجراء.</span>
               </p>
-              
+
               <div className="flex items-center gap-3">
-                <button 
+                <button
                   onClick={handleDeleteCustomer}
                   disabled={!!isDeleting}
                   className="flex-1 bg-red-600 hover:bg-red-500 text-white py-4 rounded-xl text-sm font-bold transition-all shadow-lg shadow-red-500/20 active:scale-[0.98] disabled:opacity-50"
                 >
                   {isDeleting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'نعم، حذف'}
                 </button>
-                <button 
+                <button
                   onClick={() => setDeleteId(null)}
                   className="px-8 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-4 rounded-xl text-sm font-bold transition-all active:scale-[0.98]"
                 >
@@ -1664,30 +1795,30 @@ export default function Customers() {
 
       {/* --- Hidden Print Templates --- */}
       <div className="hidden">
-         {viewCustomer && (
-            <PrintStatementTemplate
-              ref={statementPrintRef}
-              entityName={viewCustomer.name}
-              entityPhone={viewCustomer.phone}
-              statementData={statementData}
-              totalDebt={statementData.reduce((sum, item) => sum + item.debt, 0)}
-              totalPaid={statementData.reduce((sum, item) => sum + item.paid, 0)}
-              currentBalance={(viewCustomer.initial_balance || 0) + (viewCustomer.total_debt || 0)}
-              balanceType={((viewCustomer.initial_balance || 0) + (viewCustomer.total_debt || 0)) > 0 ? 'مدين' : ((viewCustomer.initial_balance || 0) + (viewCustomer.total_debt || 0)) < 0 ? 'دائن' : 'متوازن'}
-              shopName={settings?.companyName}
-              phone={settings?.phone}
-              logo={settings?.logo}
-            />
-         )}
-         {receiptData && (
-            <PrintCashReceiptTemplate
-               ref={cashReceiptPrintRef}
-               {...receiptData}
-               shopName={settings?.companyName}
-               phone={settings?.phone}
-               logo={settings?.logo}
-            />
-         )}
+        {viewCustomer && (
+          <PrintStatementTemplate
+            ref={statementPrintRef}
+            entityName={viewCustomer.name}
+            entityPhone={viewCustomer.phone}
+            statementData={statementData}
+            totalDebt={statementData.reduce((sum, item) => sum + item.debt, 0)}
+            totalPaid={statementData.reduce((sum, item) => sum + item.paid, 0)}
+            currentBalance={(viewCustomer.initial_balance || 0) + (viewCustomer.total_debt || 0)}
+            balanceType={((viewCustomer.initial_balance || 0) + (viewCustomer.total_debt || 0)) > 0 ? 'مدين' : ((viewCustomer.initial_balance || 0) + (viewCustomer.total_debt || 0)) < 0 ? 'دائن' : 'متوازن'}
+            shopName={settings?.companyName}
+            phone={settings?.phone}
+            logo={settings?.logo}
+          />
+        )}
+        {receiptData && (
+          <PrintCashReceiptTemplate
+            ref={cashReceiptPrintRef}
+            {...receiptData}
+            shopName={settings?.companyName}
+            phone={settings?.phone}
+            logo={settings?.logo}
+          />
+        )}
       </div>
     </div>
   );
@@ -1736,7 +1867,7 @@ function FilterButton({ active, onClick, label, color = 'indigo' }: any) {
   };
 
   return (
-    <button 
+    <button
       onClick={onClick}
       className={`px-5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${active ? activeMap[color] : `text-slate-500 ${colorMap[color]}`}`}
     >

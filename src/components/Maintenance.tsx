@@ -982,6 +982,11 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
   const [directPartPrice, setDirectPartPrice] = useState('');
   const [directPartQty, setDirectPartQty] = useState('1');
   const [directPartWalletId, setDirectPartWalletId] = useState('');
+  const [directPartSupplierId, setDirectPartSupplierId] = useState('');
+  const [directPartPaidAmount, setDirectPartPaidAmount] = useState('');
+  const [availableSuppliers, setAvailableSuppliers] = useState<any[]>([]);
+  const [directPartBranchId, setDirectPartBranchId] = useState('');
+  const { branches } = useBranch();
 
   const actCashierCheck = JSON.parse(localStorage.getItem('active_cashier') || '{}');
   const roleLevelCheck = actCashierCheck?.role_level || 3;
@@ -1036,29 +1041,69 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
   const [customMaintenanceCost, setCustomMaintenanceCost] = useState('');
 
   const handleAddDirectPart = async () => {
-    if (!directPartName || !directPartPrice) return;
+    if (!directPartName || !directPartPrice || !directPartCost) return;
     setIsLoading(true);
     try {
       const token = localStorage.getItem('access_token');
       const tenantId = localStorage.getItem('tenant_id') || localStorage.getItem('user_id');
+      const totalCost = Number(directPartCost) * Number(directPartQty);
+
+      const paidAmtStr = directPartPaidAmount.trim() === '' ? totalCost : Number(directPartPaidAmount);
+      const paidAmt = Number(paidAmtStr);
+      const remainingAmt = totalCost - paidAmt;
+
+      if (paidAmt > 0 && directPartWalletId) {
+        const selectedWallet = availableWallets.find(w => w.id.toString() === directPartWalletId);
+        if (selectedWallet && selectedWallet.balance < paidAmt) {
+          alert(`رصيد الخزنة المحددة غير كافٍ. الرصيد المتاح: ${selectedWallet.balance} ج.م`);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (remainingAmt > 0 && !directPartSupplierId) {
+        alert('الرجاء اختيار المورد لأن هناك مبلغ متبقي (أجل)');
+        setIsLoading(false);
+        return;
+      }
+
+      let supplierName = 'صيانة مباشرة';
+      if (directPartSupplierId) {
+        const sup = availableSuppliers.find(s => s.id.toString() === directPartSupplierId);
+        if (sup) supplierName = sup.name;
+      }
+
+      let branchIdForPart = localStorage.getItem('takka_active_branch_id');
+      if (isOwnerActCheck) {
+        if (!directPartBranchId) {
+          alert('الرجاء اختيار الفرع لإضافة القطعة المباشرة');
+          setIsLoading(false);
+          return;
+        }
+        branchIdForPart = directPartBranchId;
+      }
+      if (!branchIdForPart || branchIdForPart === 'ALL') {
+        branchIdForPart = repair.receiving_branch_id || repair.branch_id || null;
+      }
 
       const partSku = 'DIR-' + Date.now().toString().slice(-6);
       const newSparePart = {
         name: directPartName,
         sku: partSku,
         quantity: 0,
-        sell_price: Number(directPartPrice),
-        cost_price: Number(directPartCost),
+        sell_price: Number(directPartPrice) * Number(directPartQty),
+        cost_price: totalCost,
         category: 'صيانة مباشرة',
         barcode: partSku,
         barcode_type: 'CODE128',
         min_quantity: 1,
         tax: 0,
-        supplier: 'صيانة مباشرة',
+        supplier: supplierName,
         entry_type: 'purchase',
         status: 'active',
         user_id: tenantId,
-        tenant_id: tenantId
+        tenant_id: tenantId,
+        branch_id: branchIdForPart
       };
 
       const partRes = await fetch(`${SUPABASE_URL}/rest/v1/spare_parts`, {
@@ -1109,13 +1154,26 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
         body: JSON.stringify({ notes: finalNotes })
       });
 
-      if (directPartWalletId) {
-        await processTreasuryTransaction(Number(directPartWalletId), Number(directPartCost) * Number(directPartQty), 'out', 'مشتريات قطع غيار صيانة', `شراء قطعة مباشرة للصيانة: ${directPartName} - تذكرة #${repair.id}`, repair.receiving_branch_id || repair.branch_id || null);
+      if (paidAmt > 0 && directPartWalletId) {
+        let tCat = 'مشتريات قطع غيار صيانة';
+        let tDesc = `شراء قطعة مباشرة للصيانة: ${directPartName} - تذكرة #${repair.id}`;
+
+        if (directPartSupplierId) {
+          tCat = 'سداد دفعة للمورد';
+          tDesc = `دفعة للمورد: ${supplierName} (عن شراء قطعة مباشرة: ${directPartName})`;
+        }
+        await processTreasuryTransaction(Number(directPartWalletId), paidAmt, 'out', tCat, tDesc, repair.receiving_branch_id || repair.branch_id || null);
       }
 
       logToCRM(repair.id, `شراء وإضافة قطعة مباشرة: ${directPartName}`);
       setRepairParts(newRepairParts);
       setIsAddPartModalOpen(false);
+      setDirectPartName('');
+      setDirectPartCost('');
+      setDirectPartPrice('');
+      setDirectPartQty('1');
+      setDirectPartPaidAmount('');
+      setDirectPartSupplierId('');
       await onSuccess();
     } catch (e) { console.error(e); } finally { setIsLoading(false); }
   };
@@ -1480,7 +1538,22 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
           }
         } catch (e) { }
       };
+
+      const fetchSuppliers = async () => {
+        try {
+          const token = localStorage.getItem('access_token');
+          const userId = localStorage.getItem('tenant_id') || localStorage.getItem('user_id');
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/suppliers?tenant_id=eq.${userId}&select=id,name`, {
+            headers: { 'apikey': API_KEY, 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            setAvailableSuppliers(await res.json());
+          }
+        } catch (e) { }
+      };
+
       fetchWallets();
+      fetchSuppliers();
     }
   }, [isOpen]);
 
@@ -2696,35 +2769,99 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">الكمية</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={directPartQty}
-                  onChange={e => setDirectPartQty(e.target.value)}
-                  className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm text-left font-mono font-bold text-lg"
-                  dir="ltr"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">الكمية</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={directPartQty}
+                    onChange={e => setDirectPartQty(e.target.value)}
+                    className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm text-left font-mono font-bold text-lg"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">المدفوع من التكلفة</label>
+                  <input
+                    type="number"
+                    value={directPartPaidAmount}
+                    onChange={e => setDirectPartPaidAmount(e.target.value)}
+                    placeholder={(Number(directPartCost || 0) * Number(directPartQty || 1)).toFixed(2)}
+                    className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm text-left font-mono font-bold text-lg"
+                    dir="ltr"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">خصم التكلفة من خزنة:</label>
-                <select
-                  value={directPartWalletId}
-                  onChange={(e) => setDirectPartWalletId(e.target.value)}
-                  className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm font-bold appearance-none cursor-pointer"
-                >
-                  <option value="" disabled>-- اختر الخزنة (أو اتركها فارغة) --</option>
-                  {availableWallets.map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-                {directPartCost && directPartQty && directPartWalletId && (
-                  <p className="text-sm text-slate-500 mt-2 font-bold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 p-3 rounded-lg border border-rose-100 dark:border-rose-500/20">
-                    سيتم سحب <span className="font-mono text-lg mx-1">{(Number(directPartCost) * Number(directPartQty)).toFixed(2)}</span> ج.م من الخزنة المحددة.
-                  </p>
-                )}
+
+              {isOwnerActCheck && (
+                <div className="mt-4 mb-4">
+                  <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">الفرع (لإضافة القطعة)</label>
+                  <select
+                    value={directPartBranchId}
+                    onChange={(e) => setDirectPartBranchId(e.target.value)}
+                    className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm font-bold appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>-- اختر الفرع --</option>
+                    {branches && branches.map((b: any) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">المورد (في حالة الآجل)</label>
+                  <select
+                    value={directPartSupplierId}
+                    onChange={(e) => setDirectPartSupplierId(e.target.value)}
+                    className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm font-bold appearance-none cursor-pointer"
+                  >
+                    <option value="">-- بدون مورد --</option>
+                    {availableSuppliers.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 block">خصم التكلفة من خزنة:</label>
+                  <select
+                    value={directPartWalletId}
+                    onChange={(e) => setDirectPartWalletId(e.target.value)}
+                    className="w-full h-12 bg-white dark:bg-[#1a1f2e] border border-slate-300 dark:border-white/10 rounded-xl px-4 text-slate-800 dark:text-white focus:border-blue-500 outline-none transition-all shadow-sm font-bold appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>-- اختر الخزنة (أو اتركها فارغة) --</option>
+                    {availableWallets.map(w => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
+              {directPartCost && directPartQty && (
+                <div className="text-sm text-slate-500 mt-2 font-bold bg-slate-50 dark:bg-white/5 p-3 rounded-lg border border-slate-200 dark:border-white/10">
+                  {(() => {
+                    const tCost = Number(directPartCost) * Number(directPartQty);
+                    const pAmtStr = directPartPaidAmount.trim() === '' ? tCost : Number(directPartPaidAmount);
+                    const pAmt = Number(pAmtStr);
+                    const rAmt = tCost - pAmt;
+
+                    if (rAmt > 0) {
+                      return (
+                        <span className="text-amber-600 dark:text-amber-400">
+                          سيتم سحب <span className="font-mono text-lg mx-1">{pAmt.toFixed(2)}</span> ج.م من الخزنة، وإضافة <span className="font-mono text-lg mx-1">{rAmt.toFixed(2)}</span> ج.م إلى حساب المورد.
+                        </span>
+                      );
+                    } else {
+                      return (
+                        <span className="text-rose-600 dark:text-rose-400">
+                          سيتم سحب كامل التكلفة <span className="font-mono text-lg mx-1">{tCost.toFixed(2)}</span> ج.م من الخزنة المحددة.
+                        </span>
+                      );
+                    }
+                  })()}
+                </div>
+              )}
             </div>
 
             <div className="mt-4 pt-6 border-t border-slate-100 dark:border-white/10">
@@ -3938,7 +4075,7 @@ function ViewRepairModal({ isOpen, onClose, repair, onSuccess }: { isOpen: boole
                   <button disabled={isUpdatingStatus || isLoading} onClick={executePrintReceipt} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Receipt className="w-4 h-4" /> طباعه فاتورة
                   </button>
-                 
+
                   <button disabled={isUpdatingStatus || isLoading} onClick={executePrintReceipt} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
                     <Receipt className="w-4 h-4" /> إنشاء فاتورة
                   </button>
@@ -4102,6 +4239,7 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
 
   const [isLoading, setIsLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [successData, setSuccessData] = useState<any>(null);
 
   const [printQueue, setPrintQueue] = useState<string>('');
@@ -4229,11 +4367,14 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
           const tenantQuery = `tenant_id=eq.${tenantId}`;
           const branchQuery = (activeBranchId && activeBranchId !== 'ALL') ? `&branch_id=eq.${activeBranchId}` : '';
 
-          const [empRes, walletsRes] = await Promise.all([
+          const [empRes, walletsRes, clientsRes] = await Promise.all([
             fetch(`${SUPABASE_URL}/rest/v1/employees?select=*&tenant_id=eq.${tenantId}&order=created_at.desc`, {
               headers: { 'apikey': API_KEY, 'Authorization': `Bearer ${token}` }
             }),
             fetch(`${SUPABASE_URL}/rest/v1/wallets?select=*,branches(name)&${tenantQuery}${branchQuery}&order=is_default.desc,id.asc`, {
+              headers: { 'apikey': API_KEY, 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${SUPABASE_URL}/rest/v1/clients?select=name,phone&tenant_id=eq.${tenantId}&order=created_at.desc`, {
               headers: { 'apikey': API_KEY, 'Authorization': `Bearer ${token}` }
             })
           ]);
@@ -4248,6 +4389,9 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
             if (data.length > 0) {
               setFormData(prev => ({ ...prev, payment_method: data[0].id.toString() }));
             }
+          }
+          if (clientsRes.ok) {
+            setClients(await clientsRes.json());
           }
         } catch (err) { }
       };
@@ -4803,10 +4947,23 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
                           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 focus-within:text-blue-500">اسم العميل <span className="text-rose-500">*</span></label>
                           <input
                             type="text" required
-                            value={formData.customer_name} onChange={e => setFormData({ ...formData, customer_name: e.target.value })}
+                            list="clients-list"
+                            value={formData.customer_name}
+                            onChange={e => {
+                              const val = e.target.value;
+                              const matchedClient = clients.find(c => c.name === val);
+                              if (matchedClient) {
+                                setFormData({ ...formData, customer_name: val, customer_phone: matchedClient.phone || formData.customer_phone });
+                              } else {
+                                setFormData({ ...formData, customer_name: val });
+                              }
+                            }}
                             className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all focus:bg-white dark:focus:bg-[#11151c]"
                             placeholder="اسم العميل..."
                           />
+                          <datalist id="clients-list">
+                            {clients.map((c, i) => <option key={i} value={c.name} />)}
+                          </datalist>
                           {formData.customer_name.trim().length > 0 && (
                             <label className="mt-2 flex items-center justify-start gap-2 cursor-pointer w-max">
                               <input type="checkbox" checked={formData.save_customer} onChange={e => setFormData({ ...formData, save_customer: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-black/40" />
@@ -4818,10 +4975,23 @@ function NewRepairModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClo
                           <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 focus-within:text-blue-500">رقم الهاتف</label>
                           <input
                             type="tel" dir="ltr"
-                            value={formData.customer_phone} onChange={e => setFormData({ ...formData, customer_phone: e.target.value })}
+                            list="clients-phone-list"
+                            value={formData.customer_phone}
+                            onChange={e => {
+                              const val = e.target.value;
+                              const matchedClient = clients.find(c => c.phone === val);
+                              if (matchedClient) {
+                                setFormData({ ...formData, customer_phone: val, customer_name: matchedClient.name || formData.customer_name });
+                              } else {
+                                setFormData({ ...formData, customer_phone: val });
+                              }
+                            }}
                             className="w-full text-right bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all focus:bg-white dark:focus:bg-[#11151c]"
                             placeholder="01012345678"
                           />
+                          <datalist id="clients-phone-list">
+                            {clients.map((c, i) => c.phone ? <option key={i} value={c.phone} /> : null)}
+                          </datalist>
                         </div>
                       </div>
 

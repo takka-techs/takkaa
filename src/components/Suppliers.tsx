@@ -274,6 +274,14 @@ export default function Suppliers() {
     e.preventDefault();
     if (!paySupplier || !payAmount || !payWalletId) return;
 
+    if (payOperationType === 'pay') {
+      const selectedWallet = wallets.find(w => w.id === Number(payWalletId));
+      if (selectedWallet && Number(payAmount) > Number(selectedWallet.balance)) {
+        alert(`عذراً، الرصيد المتاح في الخزينة (${Number(selectedWallet.balance).toLocaleString()} ج.م) لا يكفي لسداد هذا المبلغ.`);
+        return;
+      }
+    }
+
     setIsPaying(true);
     try {
       const token = localStorage.getItem('access_token');

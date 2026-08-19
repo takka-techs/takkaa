@@ -56,7 +56,7 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
       cashIn,
       cashOut,
       netCashflow,
-      totalSalesParams
+      totalSalesParams,
     } = data;
     const { currentBranch } = useBranch();
 
@@ -65,11 +65,11 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
     const translateItemType = (type: string) => {
       switch (type) {
         case "device":
-          return "جهاز";
+          return "أجهزة";
         case "accessory":
-          return "إكسسوار";
+          return "إكسسوارات";
         case "spare_part":
-          return "قطعة غيار";
+          return "قطع غيار";
         default:
           return "أخرى";
       }
@@ -80,6 +80,19 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
       if (type === "out" || type === "expense") return "سحب/مصروف";
       return type;
     };
+
+    // دالة لتجميع العناصر حسب النوع (device, accessory, spare_part, ...)
+    const groupItemsByType = (items: any[]) => {
+      return items.reduce((acc: Record<string, any[]>, item) => {
+        const type = item.item_type || "other";
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(item);
+        return acc;
+      }, {});
+    };
+
+    const groupedSales = groupItemsByType(sales);
+    const groupedPurchases = groupItemsByType(purchases);
 
     return (
       <div
@@ -131,15 +144,16 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
         </div>
 
         <style>{`
-        .print-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 11px; margin-bottom: 24px; }
+        .print-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 11px; margin-bottom: 16px; }
         .print-table th, .print-table td { border: 1px solid #d1d5db; padding: 6px 8px; }
         .print-table th { background-color: #f8fafc; font-weight: bold; color: #334155; }
         .print-section-title { background-color: #f1f5f9; padding: 8px 12px; font-weight: bold; font-size: 14px; border: 1px solid #d1d5db; border-bottom: none; display: flex; justify-content: flex-start; align-items: center; gap: 8px; border-radius: 4px 4px 0 0; }
+        .group-header-row { background-color: #e2e8f0; font-weight: bold; text-align: right; color: #1e293b; }
         .empty-row { text-align: center !important; color: #64748b; padding: 12px !important; }
       `}</style>
 
         {/* Sales Section */}
-        <div>
+        <div className="mb-6">
           <div className="print-section-title">
             <span>💰 المبيعات</span>
           </div>
@@ -147,7 +161,6 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
             <thead>
               <tr>
                 <th className="w-10">#</th>
-                <th>النوع</th>
                 <th>الصنف</th>
                 <th>الكمية</th>
                 <th>سعر البيع</th>
@@ -158,27 +171,39 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
               </tr>
             </thead>
             <tbody>
-              {sales.length > 0 ? (
-                sales.map((sale, i) => (
-                  <tr key={sale.id}>
-                    <td>{i + 1}</td>
-                    <td>{translateItemType(sale.item_type)}</td>
-                    <td>{sale.item_name}</td>
-                    <td>{sale.quantity}</td>
-                    <td>{Number(sale.selling_price).toLocaleString()}</td>
-                    <td>{Number(sale.cost_price).toLocaleString()}</td>
-                    <td>{Number(sale.profit).toLocaleString()}</td>
-                    <td>{sale.customer_name || "نقدي"}</td>
-                    <td>
-                      {sale.created_at
-                        ? format(new Date(sale.created_at), "hh:mm a")
-                        : "-"}
-                    </td>
-                  </tr>
-                ))
+              {Object.keys(groupedSales).length > 0 ? (
+                Object.entries(groupedSales).map(([type, items]) => {
+                  let subCounter = 1;
+                  return (
+                    <React.Fragment key={type}>
+                      {/* Sub-header for Category */}
+                      <tr className="group-header-row">
+                        <td colSpan={8} className="py-1.5 px-3 bg-slate-200 text-slate-800 font-bold">
+                          📁 {translateItemType(type)} ({items.length})
+                        </td>
+                      </tr>
+                      {items.map((sale: any) => (
+                        <tr key={sale.id}>
+                          <td>{subCounter++}</td>
+                          <td>{sale.item_name}</td>
+                          <td>{sale.quantity}</td>
+                          <td>{Number(sale.selling_price).toLocaleString()}</td>
+                          <td>{Number(sale.cost_price).toLocaleString()}</td>
+                          <td>{Number(sale.profit).toLocaleString()}</td>
+                          <td>{sale.customer_name || "نقدي"}</td>
+                          <td>
+                            {sale.created_at
+                              ? format(new Date(sale.created_at), "hh:mm a")
+                              : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={9} className="empty-row">
+                  <td colSpan={8} className="empty-row">
                     لا توجد مبيعات في هذا اليوم
                   </td>
                 </tr>
@@ -188,7 +213,7 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* Sales Returns Section */}
-        <div>
+        <div className="mb-6">
           <div className="print-section-title">
             <span>🔄 مرتجعات المبيعات</span>
           </div>
@@ -212,10 +237,18 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
                     <td>{i + 1}</td>
                     <td>{ret.invoice_number || "-"}</td>
                     <td>{ret.customer_name || "نقدي"}</td>
-                    <td>{ret.product_type === 'device' ? 'جهاز' : ret.product_type === 'accessory' ? 'إكسسوار' : ret.product_type || 'غير محدد'}</td>
+                    <td>
+                      {ret.product_type === "device"
+                        ? "جهاز"
+                        : ret.product_type === "accessory"
+                          ? "إكسسوار"
+                          : ret.product_type || "غير محدد"}
+                    </td>
                     <td>{ret.product_name || "-"}</td>
                     <td>{ret.reason || "-"}</td>
-                    <td className="font-bold text-rose-600">{Number(ret.refund_amount || ret.total_amount || 0).toLocaleString()} ج.م</td>
+                    <td className="font-bold text-rose-600">
+                      {Number(ret.refund_amount || ret.total_amount || 0).toLocaleString()} ج.م
+                    </td>
                     <td>
                       {ret.created_at
                         ? format(new Date(ret.created_at), "hh:mm a")
@@ -235,7 +268,7 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* Purchases Section */}
-        <div>
+        <div className="mb-6">
           <div className="print-section-title">
             <span>🛒 المشتريات</span>
           </div>
@@ -243,7 +276,6 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
             <thead>
               <tr>
                 <th className="w-10">#</th>
-                <th>النوع</th>
                 <th>الصنف</th>
                 <th>الكمية</th>
                 <th>سعر الشراء</th>
@@ -252,25 +284,37 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
               </tr>
             </thead>
             <tbody>
-              {purchases.length > 0 ? (
-                purchases.map((purchase, i) => (
-                  <tr key={purchase.id}>
-                    <td>{i + 1}</td>
-                    <td>{translateItemType(purchase.item_type)}</td>
-                    <td>{purchase.item_name}</td>
-                    <td>{purchase.quantity}</td>
-                    <td>{Number(purchase.purchase_price).toLocaleString()}</td>
-                    <td>{purchase.supplier_name || "-"}</td>
-                    <td>
-                      {purchase.created_at
-                        ? format(new Date(purchase.created_at), "hh:mm a")
-                        : "-"}
-                    </td>
-                  </tr>
-                ))
+              {Object.keys(groupedPurchases).length > 0 ? (
+                Object.entries(groupedPurchases).map(([type, items]) => {
+                  let subCounter = 1;
+                  return (
+                    <React.Fragment key={type}>
+                      {/* Sub-header for Category */}
+                      <tr className="group-header-row">
+                        <td colSpan={6} className="py-1.5 px-3 bg-slate-200 text-slate-800 font-bold">
+                          📁 {translateItemType(type)} ({items.length})
+                        </td>
+                      </tr>
+                      {items.map((purchase: any) => (
+                        <tr key={purchase.id}>
+                          <td>{subCounter++}</td>
+                          <td>{purchase.item_name}</td>
+                          <td>{purchase.quantity}</td>
+                          <td>{Number(purchase.purchase_price).toLocaleString()}</td>
+                          <td>{purchase.supplier_name || "-"}</td>
+                          <td>
+                            {purchase.created_at
+                              ? format(new Date(purchase.created_at), "hh:mm a")
+                              : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={7} className="empty-row">
+                  <td colSpan={6} className="empty-row">
                     لا توجد مشتريات في هذا اليوم
                   </td>
                 </tr>
@@ -280,7 +324,7 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* Maintenance Section */}
-        <div>
+        <div className="mb-6">
           <div className="print-section-title">
             <span>🔧 الصيانة</span>
           </div>
@@ -331,7 +375,7 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* Expenses Section */}
-        <div>
+        <div className="mb-6">
           <div className="print-section-title">
             <span>🧾 المصروفات</span>
           </div>
@@ -372,7 +416,7 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
         </div>
 
         {/* Transactions Section */}
-        <div style={{ pageBreakInside: "avoid" }}>
+        <div style={{ pageBreakInside: "avoid" }} className="mb-6">
           <div className="print-section-title">
             <span>💵 حركات الصندوق</span>
           </div>
@@ -420,7 +464,7 @@ const PrintDailyReportTemplate = forwardRef<HTMLDivElement, Props>(
         </div>
       </div>
     );
-  },
+  }
 );
 
 export default PrintDailyReportTemplate;

@@ -30,6 +30,7 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
     externalIncome: 0,
     transferCommissions: 0,
     damagedPartsLosses: 0,
+    techCommissions: 0,
     profitByCategory: {
       devices: { rev: 0, cost: 0, profit: 0 },
       accessories: { rev: 0, cost: 0, profit: 0 },
@@ -66,7 +67,7 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
         dateFilterStr = `&created_at=gte.${startDate.toISOString()}`;
       }
 
-      const [salesRes, repairsRes, txRes, devRes, accRes, spRes, returnsRes] = await Promise.all([
+      const [salesRes, repairsRes, txRes, devRes, accRes, spRes, returnsRes, empRes] = await Promise.all([
         fetch(`${SUPABASE_URL}/rest/v1/Sales_Invoices?select=*,Sales_Items(*)${dateFilterStr}${branchSuffix}`, { headers }),
         fetch(`${SUPABASE_URL}/rest/v1/Repairs?select=*&limit=10000${dateFilterStr}${branchSuffix.replace('branch_id', 'receiving_branch_id')}`, { headers }),
         fetch(`${SUPABASE_URL}/rest/v1/treasury_transactions?select=*${dateFilterStr}${branchSuffix}`, { headers }),
@@ -74,7 +75,13 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
         fetch(`${SUPABASE_URL}/rest/v1/Accessories?select=id,cost_price&limit=10000`, { headers }),
         fetch(`${SUPABASE_URL}/rest/v1/spare_parts?select=id,cost_price&limit=10000`, { headers }),
         fetch(`${SUPABASE_URL}/rest/v1/Sales_Returns?select=*${dateFilterStr}${branchSuffix}`, { headers }),
+        fetch(`${SUPABASE_URL}/rest/v1/employees?select=*${branchSuffix}`, { headers }),
       ]);
+
+      let employees: any[] = [];
+      if (empRes && empRes.ok) {
+        employees = await empRes.json();
+      }
       
       const costMap = {
         device: new Map<string, number>(),
@@ -100,6 +107,7 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
       let extInc = 0;
       let txCommissions = 0;
       let dmgParts = 0;
+      let techCommissions = 0;
       
       let catProfits = {
         devices: { rev: 0, cost: 0, profit: 0 },
@@ -269,7 +277,6 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
       if (repairsRes.ok) {
         const repairs = await repairsRes.json();
         repairs.forEach((rep: any) => {
-          if (rep.status === 'مرتجع / تم الاسترداد') return;
           const rev = rep.paid_amount || rep.total_amount || 0;
           let cost = 0;
           let hasParsedCost = false;
@@ -286,7 +293,13 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
           if (!hasParsedCost) {
               cost = Number(rep.spare_parts_cost || rep.cost || 0);
           }
-          const profit = rev - cost;
+          
+          const profit = rev > 0 ? (rev - cost) : 0;
+          const emp = employees.find(e => e.full_name === rep.technician_name);
+          const commissionPercent = emp ? Number(emp.maintenance_commission_value ?? emp.commission_value ?? 0) : 0;
+          const commission = (profit > 0 ? profit : 0) * (commissionPercent / 100);
+
+          techCommissions += commission;
           
           grossP += profit;
           catProfits.maintenance.rev += rev;
@@ -297,12 +310,12 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
           const monthStr = format(new Date(rep.created_at || new Date()), 'MMMM yyyy', { locale: ar });
           
           if (!dProfits[dateStr]) dProfits[dateStr] = 0;
-          dProfits[dateStr] += profit;
+          dProfits[dateStr] += (profit - commission);
           
           if (!rMonthly[monthStr]) rMonthly[monthStr] = { rev: 0, cost: 0, profit: 0, month: monthStr };
           rMonthly[monthStr].rev += rev;
           rMonthly[monthStr].cost += cost;
-          rMonthly[monthStr].profit += profit;
+          rMonthly[monthStr].profit += (profit - commission);
           
           if (profit !== 0) {
             topTxs.push({
@@ -335,8 +348,9 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
                const catStr = category.toLowerCase();
                const excludedKeywords = [
                   'مشتريات', 'شراء', 'مخزون', 'مورد', 'دفعة',
-                  'تحويل', 'محافظ', 'رصيد', 'داخلية', 'رأس مال', 'راس مال', 'سحب', 'مالك',
-                  'سلف', 'سداد', 'مرتجع', 'استرجاع', 'refund', 'return', 'reversal', 'reverse'
+                  'تحويل', 'محافظ', 'رصيد', 'داخلية', 'رأس مال', 'راس مال', 'سحب', 'سحوبات', 'مالك',
+                  'سلف', 'سداد', 'مرتجع', 'استرجاع', 'refund', 'return', 'reversal', 'reverse',
+                  'شريك', 'شركاء', 'أرباح', 'ارباح', 'توزيع'
                ];
                const isOpExp = !excludedKeywords.some(kw => catStr.includes(kw));
 
@@ -379,7 +393,7 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
          });
       }
 
-      const netP = grossP + extInc + txCommissions - opExp - dmgParts;
+      const netP = grossP + extInc + txCommissions - opExp - dmgParts - techCommissions;
       const totalRev = catProfits.devices.rev + catProfits.accessories.rev + catProfits.spareParts.rev + catProfits.maintenance.rev + extInc + txCommissions;
       const pMargin = totalRev > 0 ? (netP / totalRev) * 100 : 0;
 
@@ -406,6 +420,7 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
         externalIncome: extInc,
         transferCommissions: txCommissions,
         damagedPartsLosses: dmgParts,
+        techCommissions: techCommissions,
         profitByCategory: catProfits,
         dailyProfits: trendArray,
         monthlySummary: Object.values(rMonthly),
@@ -540,7 +555,7 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
         subtitle={`الفترة: ${dateRange === 'all' ? 'الكل' : dateRange === 'today' ? 'اليوم' : `آخر ${dateRange} أيام`}`}
         summary={[
           { label: 'إجمالي الأرباح (قبل النفقات)', value: data.grossProfit.toLocaleString(), isCurrency: true },
-          { label: 'مصروفات التشغيل', value: data.operatingExpenses.toLocaleString(), isCurrency: true },
+          { label: 'المصروفات والعمولات', value: (data.operatingExpenses + (data.techCommissions || 0)).toLocaleString(), isCurrency: true },
           { label: 'صافي الربح', value: data.netProfit.toLocaleString(), isCurrency: true },
           { label: 'هامش الربح', value: `${data.profitMargin.toFixed(1)}%` }
         ]}
@@ -573,7 +588,7 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
          </div>
          <div className="text-sm text-slate-500 dark:text-slate-400 space-y-1.5 relative z-10">
             <p>إجمالي الربح = أرباح الأجهزة + الإكسسوارات + قطع الغيار + الصيانة + إيرادات خارجية + عمولات التحويل</p>
-            <p>صافي الربح = إجمالي الربح - المصروفات التشغيلية - خسائر قطع غيار تالفة</p>
+            <p>صافي الربح = إجمالي الربح - المصروفات التشغيلية - خسائر التوالف - عمولات الفنيين</p>
             <p>تكلفة البضاعة المباعة والمرتجعات = دورة رأس مال وليست خسارة (محسوبة ضمن ربح كل فئة).</p>
             <p className="border-b border-slate-200 dark:border-white/10 pb-1 inline-block">هذا الصافي هو أساس توزيع حصص الشركاء في صفحة الشركاء.</p>
          </div>
@@ -608,8 +623,8 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
                <FileText className="w-5 h-5" />
             </div>
             <p className="text-slate-500 dark:text-slate-400 font-medium mb-1 truncate">المصروفات التشغيلية</p>
-            <h2 className="text-3xl font-bold font-mono text-slate-900 dark:text-white tracking-widest">{data.operatingExpenses.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span className="text-lg text-slate-400 dark:text-slate-500">ج.م</span></h2>
-            <p className="text-slate-400 dark:text-slate-500 text-xs mt-2">رواتب + مصروفات تشغيلية</p>
+            <h2 className="text-3xl font-bold font-mono text-slate-900 dark:text-white tracking-widest">{(data.operatingExpenses + (data.techCommissions || 0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span className="text-lg text-slate-400 dark:text-slate-500">ج.م</span></h2>
+            <p className="text-slate-400 dark:text-slate-500 text-xs mt-2">رواتب + تشغيل + عمولات</p>
         </div>
 
         {/* 4. Profit Margin */}
@@ -692,13 +707,17 @@ export default function PnLReport({ onBack }: { onBack?: () => void }) {
                     <span className="text-slate-600 dark:text-slate-300">مصروفات تشغيلية ورواتب</span>
                     <span className="font-bold font-mono text-rose-600 dark:text-red-400">{(data.operatingExpenses || 0).toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</span>
                  </div>
+                 <div className="flex justify-between items-center text-sm opacity-80">
+                    <span className="text-slate-600 dark:text-slate-300">عمولات الفنيين (صيانة)</span>
+                    <span className="font-bold font-mono text-rose-600 dark:text-red-400">{(data.techCommissions || 0).toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</span>
+                 </div>
                  <div className="flex justify-between items-center text-sm pb-2 border-b border-slate-100 dark:border-white/5 opacity-50">
                     <span className="text-slate-600 dark:text-slate-300">خسائر قطع غيار تالفة</span>
                     <span className="font-bold font-mono text-rose-600 dark:text-red-400">{(data.damagedPartsLosses || 0).toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</span>
                  </div>
                  <div className="flex justify-between items-center pt-1">
                     <strong className="text-slate-900 dark:text-white text-sm">إجمالي المصروفات والخسائر</strong>
-                    <strong className="font-bold font-mono text-rose-600 dark:text-red-400">{((data.operatingExpenses || 0) + (data.damagedPartsLosses || 0)).toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</strong>
+                    <strong className="font-bold font-mono text-rose-600 dark:text-red-400">{((data.operatingExpenses || 0) + (data.damagedPartsLosses || 0) + (data.techCommissions || 0)).toLocaleString(undefined, {minimumFractionDigits: 2})} ج.م</strong>
                  </div>
               </div>
             </div>

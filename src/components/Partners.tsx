@@ -35,8 +35,14 @@ export default function Partners() {
     status: 'نشط'
   });
 
+  // Wallets & Investment state
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [investments, setInvestments] = useState([{ wallet_id: '', amount: 0 }]);
+
   // Profit Calculation Form
   const [profitMonth, setProfitMonth] = useState('');
+  const [profitPayoutMode, setProfitPayoutMode] = useState<'accrue' | 'payout'>('accrue');
+  const [profitWalletId, setProfitWalletId] = useState<string>('');
   const [profitCalculation, setProfitCalculation] = useState<any>(null);
 
   // Transactions State
@@ -46,6 +52,7 @@ export default function Partners() {
     amount: 0,
     description: ''
   });
+  const [txWalletId, setTxWalletId] = useState<string>('');
 
   const baseUrl = 'https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1';
   const apiKey = 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa';
@@ -72,13 +79,41 @@ export default function Partners() {
     }
   };
 
+  const fetchWallets = async () => {
+    try {
+      const userId = localStorage.getItem('user_id');
+      const res = await fetch(`${baseUrl}/wallets?tenant_id=eq.${userId}`, { headers });
+      if (res.ok) {
+         const data = await res.json();
+         setWallets(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchPartners();
+    fetchWallets();
   }, []);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const totalPercentage = partners.reduce((sum, p) => sum + (p.profit_percentage || 0), 0);
+      if (totalPercentage + Number(formData.profit_percentage) > 100) {
+         alert(`عفواً، إجمالي نسب الشركاء (${totalPercentage}%) مع النسبة المدخلة يتجاوز 100%`);
+         return;
+      }
+
+      if (formData.investment > 0) {
+        const invalidInvestment = investments.some(inv => inv.amount > 0 && !inv.wallet_id);
+        if (invalidInvestment) {
+           alert('الرجاء اختيار الخزنة لكل مبلغ استثمار تم إدخاله');
+           return;
+        }
+      }
+
       const userId = localStorage.getItem('user_id');
       const payload = { ...formData, user_id: userId };
       const res = await fetch(`${baseUrl}/partners`, {
@@ -102,11 +137,40 @@ export default function Partners() {
             description: 'إيداع رأس مال مبدئي / بداية العقد'
           })
         });
+
+        // Add to wallets
+        for (const inv of investments) {
+           if (inv.amount > 0 && inv.wallet_id) {
+              const wallet = wallets.find(w => w.id.toString() === inv.wallet_id.toString());
+              if (wallet) {
+                 await fetch(`${baseUrl}/wallets?id=eq.${inv.wallet_id}`, {
+                    method: 'PATCH',
+                    headers,
+                    body: JSON.stringify({
+                       balance: (wallet.balance || 0) + inv.amount
+                    })
+                 });
+                 
+                 await fetch(`${baseUrl}/wallet_transactions`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                       wallet_id: inv.wallet_id,
+                       type: 'إيداع',
+                       amount: inv.amount,
+                       description: `إيداع استثمار من الشريك ${newPartner.name}`,
+                       tenant_id: userId
+                    })
+                 });
+              }
+           }
+        }
       }
 
       setIsAddModalOpen(false);
       resetForm();
       fetchPartners();
+      fetchWallets();
     } catch (err: any) {
       alert(err.message);
     }
@@ -115,6 +179,15 @@ export default function Partners() {
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const totalPercentage = partners
+        .filter(p => p.id !== editPartner.id)
+        .reduce((sum, p) => sum + (p.profit_percentage || 0), 0);
+        
+      if (totalPercentage + Number(formData.profit_percentage) > 100) {
+         alert(`عفواً، إجمالي نسب الشركاء (${totalPercentage}%) مع النسبة المدخلة يتجاوز 100%`);
+         return;
+      }
+
       const userId = localStorage.getItem('user_id');
       const res = await fetch(`${baseUrl}/partners?id=eq.${editPartner.id}`, {
         method: 'PATCH',
@@ -160,7 +233,14 @@ export default function Partners() {
   const handleAddTransactionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if ((txFormData.type === 'سحب' || txFormData.type === 'إيداع رأس مال') && !txWalletId) {
+         alert('الرجاء اختيار الخزنة للمعاملة');
+         return;
+      }
+
       const userId = localStorage.getItem('user_id');
+      const tenantId = localStorage.getItem('tenant_id') || userId;
+      
       // 1. Add transaction
       await fetch(`${baseUrl}/partner_transactions`, {
         method: 'POST',
@@ -168,11 +248,41 @@ export default function Partners() {
         body: JSON.stringify({
           partner_id: transactionsPartner.id,
           user_id: userId,
+          tenant_id: tenantId,
           ...txFormData
         })
       });
 
-      // 2. Update totals on partner
+      // 2. Update wallet and treasury if applicable
+      if (txWalletId && (txFormData.type === 'سحب' || txFormData.type === 'إيداع رأس مال')) {
+         const wallet = wallets.find(w => w.id.toString() === txWalletId);
+         if (wallet) {
+            const isDeposit = txFormData.type === 'إيداع رأس مال';
+            const newBalance = isDeposit ? (wallet.balance + txFormData.amount) : (wallet.balance - txFormData.amount);
+            
+            await fetch(`${baseUrl}/wallets?id=eq.${txWalletId}`, {
+               method: 'PATCH',
+               headers,
+               body: JSON.stringify({ balance: newBalance })
+            });
+
+            await fetch(`${baseUrl}/treasury_transactions`, {
+               method: 'POST',
+               headers,
+               body: JSON.stringify({
+                  wallet_id: txWalletId,
+                  type: isDeposit ? 'in' : 'out',
+                  amount: txFormData.amount,
+                  category: isDeposit ? 'إيداع رأس مال شركاء' : 'سحوبات شركاء',
+                  description: `معاملة شريك (${transactionsPartner.name}): ${txFormData.description || txFormData.type}`,
+                  user_id: userId,
+                  tenant_id: tenantId
+               })
+            });
+         }
+      }
+
+      // 3. Update totals on partner
       let updatePayload: any = {};
       
       if (txFormData.type === 'سحب') {
@@ -191,8 +301,10 @@ export default function Partners() {
 
       setIsAddTransactionModalOpen(false);
       setTxFormData({ type: 'إيداع رأس مال', amount: 0, description: '' });
+      setTxWalletId('');
       fetchTransactions(transactionsPartner.id);
       fetchPartners();
+      fetchWallets();
     } catch (err) {
       alert("فشل إضافة المعاملة");
     }
@@ -204,6 +316,7 @@ export default function Partners() {
       profit_percentage: 0, investment: 0, start_date: '', end_date: '',
       terms: '', notes: '', status: 'نشط'
     });
+    setInvestments([{ wallet_id: '', amount: 0 }]);
   };
 
   const calculateProfits = async () => {
@@ -326,6 +439,38 @@ export default function Partners() {
     try {
       const [year, month] = profitMonth.split('-');
       
+      const tenantId = localStorage.getItem('tenant_id');
+      const userId = localStorage.getItem('user_id');
+
+      // Check if this month was already distributed
+      const targetDesc = `شهر ${month}/${year}`;
+      
+      const [ptRes, ttRes] = await Promise.all([
+        fetch(`${baseUrl}/partner_transactions?select=description`, { headers }),
+        fetch(`${baseUrl}/treasury_transactions?select=description`, { headers })
+      ]);
+
+      let isDistributed = false;
+
+      if (ptRes.ok) {
+         const ptData = await ptRes.json();
+         if (ptData.some((tx: any) => tx.description?.includes(`أرباح شهر ${month}/${year}`))) {
+            isDistributed = true;
+         }
+      }
+
+      if (ttRes.ok && !isDistributed) {
+         const ttData = await ttRes.json();
+         if (ttData.some((tx: any) => tx.description?.includes(targetDesc) && tx.description?.includes('أرباح'))) {
+            isDistributed = true;
+         }
+      }
+
+      if (isDistributed) {
+          alert(`عفواً، تم توزيع وتأكيد أرباح شهر ${month}/${year} مسبقاً! لا يمكن توزيع أرباح نفس الشهر أكثر من مرة.`);
+          return;
+      }
+
       // Calculate and save distribution for each partner
       for (const p of partners) {
            let baseProfit = 0;
@@ -347,15 +492,66 @@ export default function Partners() {
                   partner_id: p.id,
                   type: 'توزيع أرباح',
                   amount: partnerShare,
-                  description: `أرباح شهر ${month}/${year}`
+                  description: `أرباح شهر ${month}/${year}`,
+                  user_id: userId,
+                  tenant_id: tenantId
                 })
              });
 
-             // Update total profits on the partner record
+             let newWithdrawals = p.withdrawals || 0;
+
+             if (profitPayoutMode === 'payout' && profitWalletId) {
+                // Record withdrawal for the partner
+                await fetch(`${baseUrl}/partner_transactions`, {
+                   method: 'POST',
+                   headers,
+                   body: JSON.stringify({
+                     partner_id: p.id,
+                     type: 'سحب',
+                     amount: partnerShare,
+                     description: `تسليم أرباح شهر ${month}/${year} نقداً`,
+                     user_id: userId,
+                     tenant_id: tenantId
+                   })
+                });
+
+                newWithdrawals += partnerShare;
+                
+                // Record treasury transaction
+                await fetch(`${baseUrl}/treasury_transactions`, {
+                   method: 'POST',
+                   headers,
+                   body: JSON.stringify({
+                     wallet_id: profitWalletId,
+                     type: 'out',
+                     amount: partnerShare,
+                     category: 'سحوبات شركاء',
+                     description: `تسليم أرباح الشريك ${p.name} (شهر ${month}/${year})`,
+                     user_id: userId,
+                     tenant_id: tenantId
+                   })
+                });
+                
+                // Deduct from wallet balance
+                const wallet = wallets.find(w => w.id.toString() === profitWalletId.toString());
+                if (wallet) {
+                   await fetch(`${baseUrl}/wallets?id=eq.${profitWalletId}`, {
+                      method: 'PATCH',
+                      headers,
+                      body: JSON.stringify({ balance: wallet.balance - partnerShare })
+                   });
+                   wallet.balance -= partnerShare; // Update local state tentatively
+                }
+             }
+
+             // Update total profits and withdrawals on the partner record
              await fetch(`${baseUrl}/partners?id=eq.${p.id}`, {
                method: 'PATCH',
                headers,
-               body: JSON.stringify({ profits: (p.profits || 0) + partnerShare })
+               body: JSON.stringify({ 
+                 profits: (p.profits || 0) + partnerShare,
+                 withdrawals: newWithdrawals
+               })
              });
            }
       }
@@ -567,8 +763,42 @@ export default function Partners() {
                            <input type="number" required value={formData.profit_percentage} onChange={e => setFormData({...formData, profit_percentage: parseFloat(e.target.value) || 0})} className="w-full bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-amber-500 dark:text-white" />
                          </div>
                          <div>
-                           <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">مبلغ الاستثمار (اختياري)</label>
-                           <input type="number" value={formData.investment} onChange={e => setFormData({...formData, investment: parseFloat(e.target.value) || 0})} className="w-full bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-amber-500 dark:text-white" />
+                           <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">مبلغ الاستثمار وتوزيعه على الخزائن</label>
+                           {investments.map((inv, index) => (
+                              <div key={index} className="flex items-center gap-2 mb-2">
+                                <input type="number" placeholder="المبلغ" value={inv.amount || ''} onChange={e => {
+                                   const newInv = [...investments];
+                                   newInv[index].amount = parseFloat(e.target.value) || 0;
+                                   setInvestments(newInv);
+                                   const total = newInv.reduce((sum, item) => sum + (item.amount || 0), 0);
+                                   setFormData({...formData, investment: total});
+                                }} className="w-1/3 bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500 dark:text-white" />
+                                
+                                <select value={inv.wallet_id} onChange={e => {
+                                   const newInv = [...investments];
+                                   newInv[index].wallet_id = e.target.value;
+                                   setInvestments(newInv);
+                                }} className="w-2/3 bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500 dark:text-white">
+                                   <option value="">اختر الخزنة</option>
+                                   {wallets.map(w => <option key={w.id} value={w.id}>{w.name} ({w.balance})</option>)}
+                                </select>
+                                
+                                {investments.length > 1 && (
+                                  <button type="button" onClick={() => {
+                                     const newInv = investments.filter((_, i) => i !== index);
+                                     setInvestments(newInv);
+                                     const total = newInv.reduce((sum, item) => sum + (item.amount || 0), 0);
+                                     setFormData({...formData, investment: total});
+                                  }} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                           ))}
+                           <button type="button" onClick={() => setInvestments([...investments, { wallet_id: '', amount: 0 }])} className="text-xs text-indigo-500 font-bold flex items-center gap-1 mt-1 hover:text-indigo-600 transition-colors">
+                             <Plus className="w-3 h-3" /> إضافة خزنة أخرى
+                           </button>
+                           <div className="mt-2 text-xs font-bold text-slate-500">إجمالي الاستثمار: {formData.investment}</div>
                          </div>
                       </div>
 
@@ -612,36 +842,35 @@ export default function Partners() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
             <motion.div 
                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-               className="bg-white dark:bg-[#11151c] rounded-2xl w-full max-w-xl shadow-xl flex flex-col"
+               className="bg-white dark:bg-[#11151c] rounded-2xl w-full max-w-md shadow-xl flex flex-col"
             >
-              <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-white/5">
-                 <h3 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                   <Calculator className="w-6 h-6 text-emerald-500" /> حساب أرباح الشركاء
+              <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-white/5">
+                 <h3 className="text-lg font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+                   <Calculator className="w-5 h-5 text-emerald-500" /> حساب أرباح الشركاء
                  </h3>
-                 <button onClick={() => setIsProfitModalOpen(false)} className="text-slate-400 hover:text-red-500"><X className="w-6 h-6" /></button>
+                 <button onClick={() => setIsProfitModalOpen(false)} className="text-slate-400 hover:text-red-500"><X className="w-5 h-5" /></button>
               </div>
-              <div className="p-6 space-y-6">
+              <div className="p-4 space-y-4">
                 {!profitCalculation ? (
                   <>
                     <div>
                       <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">اختر الشهر *</label>
-                      <input type="month" required value={profitMonth} onChange={e => setProfitMonth(e.target.value)} className="w-full bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500 dark:text-white" />
+                      <input type="month" required value={profitMonth} onChange={e => setProfitMonth(e.target.value)} className="w-full bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 focus:outline-none focus:border-emerald-500 dark:text-white" />
                     </div>
-                    <button onClick={calculateProfits} disabled={!profitMonth} className="w-full py-3 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2">
-                       <RefreshCw className="w-5 h-5" /> حساب الأرباح الآن
+                    <button onClick={calculateProfits} disabled={!profitMonth} className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-2">
+                       <RefreshCw className="w-4 h-4" /> حساب الأرباح الآن
                     </button>
                   </>
                 ) : showProfitSuccess ? (
-                  <div className="text-center py-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 mb-4">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                  <div className="text-center py-8">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-500/20 mb-3">
+                      <CheckCircle2 className="w-7 h-7 text-emerald-500" />
                     </div>
-                    <h3 className="text-2xl font-bold text-emerald-500">تم تأكيد توزيع الأرباح بنجاح</h3>
-                    <p className="text-slate-500 mt-2">تم تسجيل التوزيعات في المعاملات وتحديث الأرصدة.</p>
+                    <h3 className="text-xl font-bold text-emerald-500">تم تأكيد التوزيع بنجاح</h3>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                     <div className="bg-slate-50 dark:bg-[#0d1117] rounded-xl p-4 space-y-3 font-mono text-sm border border-slate-200 dark:border-white/5">
+                  <div className="space-y-3">
+                     <div className="bg-slate-50 dark:bg-[#0d1117] rounded-xl p-3 space-y-2 font-mono text-sm border border-slate-200 dark:border-white/5">
                         <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                           <span>ربح الأجهزة</span>
                           <span className="font-bold">{profitCalculation.devices} ج.م</span>
@@ -654,27 +883,27 @@ export default function Partners() {
                           <span>ربح الصيانة وقطع الغيار</span>
                           <span className="font-bold">{profitCalculation.maintenance + profitCalculation.sparePorts} ج.م</span>
                         </div>
-                        <div className="h-px bg-slate-200 dark:bg-white/10 my-2"></div>
+                        <div className="h-px bg-slate-200 dark:bg-white/10 my-1.5"></div>
                         <div className="flex justify-between items-center text-slate-700 dark:text-slate-300 font-bold">
                           <span>إجمالي الربح العام</span>
                           <span>{profitCalculation.totalGross} ج.م</span>
                         </div>
-                        <div className="flex justify-between items-center text-red-500">
+                        <div className="flex justify-between items-center text-red-500 text-xs">
                           <span>مصاريف الخزنة والرواتب</span>
                           <span>- {profitCalculation.vaultExpenses + profitCalculation.salaries} ج.م</span>
                         </div>
-                        <div className="h-px bg-slate-200 dark:bg-white/10 my-2"></div>
-                        <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-black text-lg">
+                        <div className="h-px bg-slate-200 dark:bg-white/10 my-1.5"></div>
+                        <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-black">
                           <span>صافي الربح الموزع</span>
                           <span>{profitCalculation.netProfit} ج.م</span>
                         </div>
                      </div>
 
                      <div>
-                       <h4 className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                         <Users className="w-5 h-5 text-indigo-500" /> توزيع الأرباح على الشركاء
+                       <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-1.5">
+                         <Users className="w-4 h-4 text-indigo-500" /> توزيع الأرباح على الشركاء
                        </h4>
-                       <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                       <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
                          {partners.map(p => {
                            let baseProfit = 0;
                            if (p.partnership_type === 'المحل كله') baseProfit = profitCalculation.netProfit;
@@ -688,12 +917,12 @@ export default function Partners() {
                            const partnerShare = ((p.profit_percentage / 100) * baseProfit).toFixed(2);
                            
                            return (
-                             <div key={p.id} className="flex justify-between items-center bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-lg">
+                             <div key={p.id} className="flex justify-between items-center bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-2 rounded-lg">
                                 <div>
-                                  <div className="font-bold text-slate-900 dark:text-white">{p.name}</div>
-                                  <div className="text-xs text-slate-500">{p.partnership_type} ({p.profit_percentage}%)</div>
+                                  <div className="font-bold text-sm text-slate-900 dark:text-white">{p.name}</div>
+                                  <div className="text-[10px] text-slate-500">{p.partnership_type} ({p.profit_percentage}%)</div>
                                 </div>
-                                <div className="text-emerald-500 font-bold font-mono text-lg">
+                                <div className="text-emerald-500 font-bold font-mono text-base">
                                    {/* Calculate proper portion based on partnership type */}
                                    {partnerShare} ج.م
                                 </div>
@@ -703,9 +932,45 @@ export default function Partners() {
                        </div>
                      </div>
 
-                     <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex gap-2 w-full">
-                       <button onClick={confirmProfitDistribution} className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors">تأكيد التوزيع</button>
-                       <button onClick={() => setProfitCalculation(null)} className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-colors">إلغاء الحساب</button>
+                     <div className="pt-3 border-t border-slate-100 dark:border-white/5 space-y-3">
+                       <div>
+                         <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">طريقة التسليم</label>
+                         <select 
+                           value={profitPayoutMode} 
+                           onChange={e => setProfitPayoutMode(e.target.value as 'accrue' | 'payout')} 
+                           className="w-full bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
+                         >
+                           <option value="accrue">تسجيل في رصيد الشركاء فقط</option>
+                           <option value="payout">تسليم نقداً من الخزنة الآن</option>
+                         </select>
+                       </div>
+
+                       {profitPayoutMode === 'payout' && (
+                         <div>
+                           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">الخزنة / الصندوق *</label>
+                           <select 
+                             value={profitWalletId} 
+                             onChange={e => setProfitWalletId(e.target.value)} 
+                             className="w-full bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
+                           >
+                             <option value="" disabled>-- اختر الخزنة لخصم المبالغ منها --</option>
+                             {wallets.map(w => (
+                               <option key={w.id} value={w.id}>{w.name} (الرصيد: {w.balance} ج.م)</option>
+                             ))}
+                           </select>
+                         </div>
+                       )}
+
+                       <div className="flex gap-2 w-full pt-1">
+                         <button 
+                           onClick={confirmProfitDistribution} 
+                           disabled={profitPayoutMode === 'payout' && !profitWalletId}
+                           className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/50 text-white text-sm font-bold rounded-xl transition-colors disabled:cursor-not-allowed"
+                         >
+                           تأكيد التوزيع
+                         </button>
+                         <button onClick={() => setProfitCalculation(null)} className="flex-1 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-xl transition-colors">إلغاء الحساب</button>
+                       </div>
                      </div>
                   </div>
                 )}
@@ -800,6 +1065,23 @@ export default function Partners() {
                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">الوصف</label>
                    <textarea value={txFormData.description} onChange={e => setTxFormData({...txFormData, description: e.target.value})} className="w-full bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 dark:text-white resize-none" rows={3}></textarea>
                  </div>
+                 
+                 {(txFormData.type === 'إيداع رأس مال' || txFormData.type === 'سحب') && (
+                   <div>
+                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">الخزنة *</label>
+                     <select 
+                       value={txWalletId} 
+                       onChange={e => setTxWalletId(e.target.value)} 
+                       className="w-full bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 dark:text-white"
+                     >
+                       <option value="">-- اختر الخزنة --</option>
+                       {wallets.map(w => (
+                         <option key={w.id} value={w.id}>{w.name} (الرصيد: {w.balance} ج.م)</option>
+                       ))}
+                     </select>
+                   </div>
+                 )}
+
                  <div className="flex gap-2 pt-2">
                    <button type="submit" className="flex-1 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold">حفظ</button>
                    <button type="button" onClick={() => setIsAddTransactionModalOpen(false)} className="flex-1 py-2.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 rounded-xl font-bold">إلغاء</button>

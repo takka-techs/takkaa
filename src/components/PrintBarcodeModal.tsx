@@ -11,11 +11,20 @@ interface PrintBarcodeModalProps {
   autoSelectItem?: any;
 }
 
+// بيرجع حجم خط مناسب حسب طول اسم المنتج بدل ما يتقطع بـ "..."
+// كل ما الاسم يطول، الخط يصغر تدريجيًا لحد حد أدنى معين عشان يفضل مقروء
+function getAutoFontSize(text: string, baseSize: number, minSize: number = 6) {
+  const len = text?.length || 0;
+  if (len <= 10) return baseSize;
+  const shrink = Math.floor((len - 10) / 2);
+  return Math.max(baseSize - shrink, minSize);
+}
+
 export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarcodeModalProps) {
   const { settings } = useSettings();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedCategory, setSelectedCategory] = useState<'device' | 'accessory' | 'spare_part' | null>(null);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,16 +80,16 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
     }
 
     if ((window as any).electron) {
-      (window as any).electron.printSilent({ 
-          type: 'barcode', 
-          data: {
-             itemId: selectedItem.id,
-             itemName: selectedItem.display_name,
-             price: selectedItem.final_price,
-             barcodeValue: selectedItem.barcode || selectedItem.id,
-             brand: settings.companyName || selectedItem.brand,
-             config
-          } 
+      (window as any).electron.printSilent({
+        type: 'barcode',
+        data: {
+          itemId: selectedItem.id,
+          itemName: selectedItem.display_name,
+          price: selectedItem.final_price,
+          barcodeValue: selectedItem.barcode || selectedItem.id,
+          brand: settings.companyName || selectedItem.brand,
+          config
+        }
       });
     } else {
       executePrint();
@@ -103,19 +112,19 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
 
   const handleSearch = async (text: string) => {
     setSearchQuery(text);
-    
+
     setIsLoading(true);
     try {
       const token = localStorage.getItem('access_token');
       const apiKey = 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa';
       const baseUrl = 'https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1';
-      
+
       const endpoint = selectedCategory === 'device' ? 'Devices' : selectedCategory === 'accessory' ? 'Accessories' : 'spare_parts';
-      
+
       const userId = localStorage.getItem('user_id');
-      
+
       let queryUrl = '';
-      
+
       if (!text.trim()) {
         queryUrl = `${baseUrl}/${endpoint}?select=*&limit=50${userId ? `` : ''}`;
       } else {
@@ -134,7 +143,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
         headers: { apikey: apiKey, Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      
+
       let mapped: any[] = [];
       if (Array.isArray(data)) {
         mapped = data.map((item: any) => ({
@@ -165,7 +174,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
   return (
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center p-4" dir="rtl">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -191,8 +200,8 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                 </p>
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={handleClose}
               className={`p-2 rounded-xl transition-colors ${step < 3 ? 'bg-black/10 hover:bg-black/20 text-white' : 'bg-rose-50 hover:bg-rose-100 text-rose-500 dark:bg-rose-500/10 dark:hover:bg-rose-500/20'}`}
             >
@@ -203,7 +212,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
           <div className="p-6 overflow-y-auto flex-1 bg-slate-50 dark:bg-[#0f172a]">
             <AnimatePresence mode="wait">
               {step === 1 && (
-                <motion.div 
+                <motion.div
                   key="step1"
                   initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                   className="flex flex-col gap-6"
@@ -214,7 +223,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <button 
+                    <button
                       onClick={() => { setSelectedCategory('accessory'); setStep(2); }}
                       className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-white/10 hover:border-indigo-500 dark:hover:border-indigo-400 p-8 rounded-3xl flex flex-col items-center justify-center gap-4 transition-all hover:shadow-xl hover:shadow-indigo-500/10"
                     >
@@ -227,7 +236,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                       </div>
                     </button>
 
-                    <button 
+                    <button
                       onClick={() => { setSelectedCategory('device'); setStep(2); }}
                       className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-white/10 hover:border-indigo-500 dark:hover:border-indigo-400 p-8 rounded-3xl flex flex-col items-center justify-center gap-4 transition-all hover:shadow-xl hover:shadow-indigo-500/10"
                     >
@@ -240,7 +249,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                       </div>
                     </button>
 
-                    <button 
+                    <button
                       onClick={() => { setSelectedCategory('spare_part'); setStep(2); }}
                       className="group bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-white/10 hover:border-indigo-500 dark:hover:border-indigo-400 p-8 rounded-3xl flex flex-col items-center justify-center gap-4 transition-all hover:shadow-xl hover:shadow-indigo-500/10"
                     >
@@ -257,7 +266,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
               )}
 
               {step === 2 && (
-                <motion.div 
+                <motion.div
                   key="step2"
                   initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                   className="flex flex-col gap-6"
@@ -268,8 +277,8 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                   </div>
 
                   <div className="relative">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={searchQuery}
                       onChange={(e) => handleSearch(e.target.value)}
                       placeholder="ابحث بالاسم أو الباركود أو IMEI..."
@@ -294,7 +303,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                     ) : (
                       <div className="divide-y divide-slate-100 dark:divide-white/5 max-h-[400px] overflow-y-auto">
                         {searchResults.map((item, idx) => (
-                          <button 
+                          <button
                             key={idx}
                             onClick={() => selectItem(item)}
                             className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-right"
@@ -315,7 +324,7 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
               )}
 
               {step === 3 && selectedItem && (
-                <motion.div 
+                <motion.div
                   key="step3"
                   initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                   className="flex flex-col gap-6"
@@ -324,65 +333,83 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                   <div className="bg-white dark:bg-white text-black border-2 border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[160px] shadow-inner relative overflow-hidden">
                     <div className="absolute top-2 right-4 text-xs font-bold text-slate-400 italic">معاينة مقربة</div>
                     {config.type === 'normal' ? (
-                       <div className="w-[80%] max-w-[250px] border border-dashed border-gray-300 p-3 flex flex-col items-center">
-                         {selectedCategory === 'device' ? (
-                            <>
-                              <div className="text-center font-black text-xs w-full border-b border-black/20 pb-1 mb-1">
-                                {settings.companyName || selectedItem.brand || 'TAKKA'}
-                              </div>
-                              <div className="flex justify-between items-center w-full font-bold text-[10px] mb-2 px-1 text-slate-700" dir="rtl">
-                                <span>{selectedItem.storage && selectedItem.storage !== '-' ? `المساحة: ${selectedItem.storage}` : ''}</span>
-                                <span>{selectedItem.battery_percentage && selectedItem.battery_percentage !== '-' ? `البطارية: ${selectedItem.battery_percentage}%` : ''}</span>
-                              </div>
-                            </>
-                         ) : (
-                           config.showPrice && (
-                             <div className="flex justify-between w-full text-xs font-black border-b border-black/20 pb-1 mb-2 px-1">
-                               <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
-                               <span className="truncate max-w-[100px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
-                             </div>
-                           )
-                         )}
-                         {/* Visual Barcode representation for preview only */}
-                         <div className="h-10 w-full bg-[repeating-linear-gradient(90deg,#000,#000_2px,transparent_2px,transparent_4px)] opacity-80 mt-1 mb-1 relative flex items-end justify-center">
-                           <span className="bg-white px-2 text-[10px] absolute -bottom-2 font-mono font-bold tracking-widest">{selectedItem.unique_code || '123456789'}</span>
-                         </div>
-                         <div className="text-xs font-bold mt-3 text-center truncate w-full">{selectedItem.display_name}</div>
-                         {selectedCategory === 'device' && config.showPrice && (
-                           <div className="text-xs font-black mt-1 text-center w-full">
-                             {Number(selectedItem.final_price).toLocaleString()} L.E
-                           </div>
-                         )}
-                       </div>
+                      <div className="w-[80%] max-w-[250px] border border-dashed border-gray-300 p-3 flex flex-col items-center">
+                        {selectedCategory === 'device' ? (
+                          <>
+                            <div className="text-center font-black text-xs w-full border-b border-black/20 pb-1 mb-1">
+                              {settings.companyName || selectedItem.brand || 'TAKKA'}
+                            </div>
+                            <div className="flex justify-between items-center w-full font-bold text-[10px] mb-2 px-1 text-slate-700" dir="rtl">
+                              <span>{selectedItem.storage && selectedItem.storage !== '-' ? `المساحة: ${selectedItem.storage}` : ''}</span>
+                              <span>{selectedItem.battery_percentage && selectedItem.battery_percentage !== '-' ? `البطارية: ${selectedItem.battery_percentage}%` : ''}</span>
+                            </div>
+                          </>
+                        ) : (
+                          config.showPrice && (
+                            <div className="flex justify-between w-full text-xs font-black border-b border-black/20 pb-1 mb-2 px-1">
+                              <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
+                              <span className="truncate max-w-[100px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
+                            </div>
+                          )
+                        )}
+                        {/* Visual Barcode representation for preview only */}
+                        <div className="h-10 w-full bg-[repeating-linear-gradient(90deg,#000,#000_2px,transparent_2px,transparent_4px)] opacity-80 mt-1 mb-1 relative flex items-end justify-center">
+                          <span className="bg-white px-2 text-[10px] absolute -bottom-2 font-mono font-bold tracking-widest">{selectedItem.unique_code || '123456789'}</span>
+                        </div>
+                        {/* اسم المنتج - حجم الخط يصغر أوتوماتيك بدل ما يتقطع */}
+                        <div
+                          className="font-bold mt-3 text-center w-full leading-tight px-1"
+                          style={{ fontSize: `${getAutoFontSize(selectedItem.display_name, 12)}px` }}
+                        >
+                          {selectedItem.display_name}
+                        </div>
+                        {selectedCategory === 'device' && config.showPrice && (
+                          <div className="text-xs font-black mt-1 text-center w-full">
+                            {Number(selectedItem.final_price).toLocaleString()} L.E
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                       <div className="w-[80%] max-w-[250px] border border-dashed border-gray-300 flex flex-col divide-y divide-dashed divide-gray-400">
-                          {/* Split x2 Preview - Top part */}
-                          <div className="p-3 flex flex-col items-center">
-                            {config.showPrice && (
-                              <div className="flex justify-between w-full text-[10px] font-black border-b border-black/20 pb-0.5 mb-1 px-1">
-                                <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
-                                <span className="truncate max-w-[80px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
-                              </div>
-                            )}
-                            <div className="h-8 w-full bg-[repeating-linear-gradient(90deg,#000,#000_1.5px,transparent_1.5px,transparent_3px)] opacity-80 mt-0.5 mb-1 relative flex items-end justify-center">
-                              <span className="bg-white px-1 text-[8px] absolute -bottom-1.5 font-mono font-bold tracking-widest">{selectedItem.unique_code || '123456789'}</span>
+                      <div className="w-[80%] max-w-[250px] border border-dashed border-gray-300 flex flex-col divide-y divide-dashed divide-gray-400">
+                        {/* Split x2 Preview - Top part */}
+                        <div className="p-3 flex flex-col items-center">
+                          {config.showPrice && (
+                            <div className="flex justify-between w-full text-[10px] font-black border-b border-black/20 pb-0.5 mb-1 px-1">
+                              <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
+                              <span className="truncate max-w-[80px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
                             </div>
-                            <div className="text-[10px] font-bold mt-2 text-center w-full truncate">{selectedItem.display_name}</div>
+                          )}
+                          <div className="h-8 w-full bg-[repeating-linear-gradient(90deg,#000,#000_1.5px,transparent_1.5px,transparent_3px)] opacity-80 mt-0.5 mb-1 relative flex items-end justify-center">
+                            <span className="bg-white px-1 text-[8px] absolute -bottom-1.5 font-mono font-bold tracking-widest">{selectedItem.unique_code || '123456789'}</span>
                           </div>
-                          {/* Split x2 Preview - Bottom part */}
-                          <div className="p-3 flex flex-col items-center">
-                            {config.showPrice && (
-                              <div className="flex justify-between w-full text-[10px] font-black border-b border-black/20 pb-0.5 mb-1 px-1">
-                                <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
-                                <span className="truncate max-w-[80px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
-                              </div>
-                            )}
-                            <div className="h-8 w-full bg-[repeating-linear-gradient(90deg,#000,#000_1.5px,transparent_1.5px,transparent_3px)] opacity-80 mt-0.5 mb-1 relative flex items-end justify-center">
-                              <span className="bg-white px-1 text-[8px] absolute -bottom-1.5 font-mono font-bold tracking-widest">{selectedItem.unique_code || '123456789'}</span>
+                          {/* اسم المنتج - حجم الخط يصغر أوتوماتيك بدل ما يتقطع */}
+                          <div
+                            className="font-bold mt-2 text-center w-full leading-tight px-1"
+                            style={{ fontSize: `${getAutoFontSize(selectedItem.display_name, 10)}px` }}
+                          >
+                            {selectedItem.display_name}
+                          </div>
+                        </div>
+                        {/* Split x2 Preview - Bottom part */}
+                        <div className="p-3 flex flex-col items-center">
+                          {config.showPrice && (
+                            <div className="flex justify-between w-full text-[10px] font-black border-b border-black/20 pb-0.5 mb-1 px-1">
+                              <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
+                              <span className="truncate max-w-[80px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
                             </div>
-                            <div className="text-[10px] font-bold mt-2 text-center w-full truncate">{selectedItem.display_name}</div>
+                          )}
+                          <div className="h-8 w-full bg-[repeating-linear-gradient(90deg,#000,#000_1.5px,transparent_1.5px,transparent_3px)] opacity-80 mt-0.5 mb-1 relative flex items-end justify-center">
+                            <span className="bg-white px-1 text-[8px] absolute -bottom-1.5 font-mono font-bold tracking-widest">{selectedItem.unique_code || '123456789'}</span>
                           </div>
-                       </div>
+                          {/* اسم المنتج - حجم الخط يصغر أوتوماتيك بدل ما يتقطع */}
+                          <div
+                            className="font-bold mt-2 text-center w-full leading-tight px-1"
+                            style={{ fontSize: `${getAutoFontSize(selectedItem.display_name, 10)}px` }}
+                          >
+                            {selectedItem.display_name}
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -392,15 +419,15 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                     <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col gap-3">
                       <div className="text-sm font-bold text-slate-500">نوع الملصق:</div>
                       <div className="flex gap-4">
-                        <button 
-                          onClick={() => setConfig({...config, type: 'split'})}
+                        <button
+                          onClick={() => setConfig({ ...config, type: 'split' })}
                           className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${config.type === 'split' ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold' : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}
                         >
                           <ClipboardList className="w-6 h-6" />
                           <span>مقسوم (×2)</span>
                         </button>
-                        <button 
-                          onClick={() => setConfig({...config, type: 'normal'})}
+                        <button
+                          onClick={() => setConfig({ ...config, type: 'normal' })}
                           className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${config.type === 'normal' ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold' : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'}`}
                         >
                           <FileText className="w-6 h-6" />
@@ -410,14 +437,14 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                     </div>
 
                     {/* Show Price */}
-                    <div 
-                      onClick={() => setConfig({...config, showPrice: !config.showPrice})}
+                    <div
+                      onClick={() => setConfig({ ...config, showPrice: !config.showPrice })}
                       className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                         <div className="w-6 h-6 rounded flex items-center justify-center border transition-colors shadow-sm bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600">
-                           {config.showPrice && <Check className="w-4 h-4 text-emerald-500 font-black" strokeWidth={4} />}
-                         </div>
+                        <div className="w-6 h-6 rounded flex items-center justify-center border transition-colors shadow-sm bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600">
+                          {config.showPrice && <Check className="w-4 h-4 text-emerald-500 font-black" strokeWidth={4} />}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-white">
                         <span>إظهار السعر</span>
@@ -428,21 +455,21 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                     {/* Copies */}
                     <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => setConfig({...config, copies: Math.max(1, config.copies - 1)})}
+                        <button
+                          onClick={() => setConfig({ ...config, copies: Math.max(1, config.copies - 1) })}
                           className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/10 transition-colors text-black dark:text-white"
                         >
                           <Minus className="w-5 h-5" />
                         </button>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           min={1}
                           value={config.copies}
-                          onChange={(e) => setConfig({...config, copies: Math.max(1, Number(e.target.value))})}
+                          onChange={(e) => setConfig({ ...config, copies: Math.max(1, Number(e.target.value)) })}
                           className="w-16 h-10 text-center font-black text-lg bg-transparent border-t border-b border-slate-200 dark:border-white/10 outline-none number-input-no-arrows"
                         />
-                        <button 
-                          onClick={() => setConfig({...config, copies: config.copies + 1})}
+                        <button
+                          onClick={() => setConfig({ ...config, copies: config.copies + 1 })}
                           className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/10 transition-colors text-black dark:text-white"
                         >
                           <Plus className="w-5 h-5" />
@@ -462,19 +489,19 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
           {/* Footer actions for step 3 */}
           {step === 3 && (
             <div className="p-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-white/10 flex items-center gap-4 shrink-0">
-               <button 
+              <button
                 onClick={handleClose}
                 className="flex-1 max-w-[120px] bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-700 dark:text-white py-4 rounded-xl font-bold transition-all"
-               >
-                 إلغاء
-               </button>
-               <button 
+              >
+                إلغاء
+              </button>
+              <button
                 onClick={handlePrint}
                 className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all shadow-lg shadow-blue-500/20"
-               >
-                 <span>طباعة</span>
-                 <Printer className="w-5 h-5" />
-               </button>
+              >
+                <span>طباعة</span>
+                <Printer className="w-5 h-5" />
+              </button>
             </div>
           )}
 
@@ -483,20 +510,20 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
 
       {/* Hidden Print Content */}
       <div className="absolute -left-[9999px] invisible">
-         {selectedItem && (
-            <PrintBarcodeTemplate 
-               ref={printRef}
-               itemId={selectedItem.id}
-               itemName={selectedItem.display_name}
-               price={selectedItem.final_price}
-               barcodeValue={selectedItem.unique_code}
-               brand={settings.companyName || selectedItem.brand}
-               storage={selectedItem.storage}
-               battery={selectedItem.battery_percentage}
-               category={selectedCategory || undefined}
-               config={config}
-            />
-         )}
+        {selectedItem && (
+          <PrintBarcodeTemplate
+            ref={printRef}
+            itemId={selectedItem.id}
+            itemName={selectedItem.display_name}
+            price={selectedItem.final_price}
+            barcodeValue={selectedItem.unique_code}
+            brand={settings.companyName || selectedItem.brand}
+            storage={selectedItem.storage}
+            battery={selectedItem.battery_percentage}
+            category={selectedCategory || undefined}
+            config={config}
+          />
+        )}
       </div>
     </>
   );

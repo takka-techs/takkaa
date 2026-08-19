@@ -1,8 +1,8 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Search, Calendar, Filter, ChevronDown, 
-  Smartphone, Clock, CheckCircle2, XCircle, 
+import {
+  Search, Calendar, Filter, ChevronDown,
+  Smartphone, Clock, CheckCircle2, XCircle,
   MoreVertical, Download, RefreshCw,
   TrendingUp, Wallet, Package, ArrowUpRight, ArrowDownRight,
   CalendarDays, Zap, LayoutGrid, List, Eye, Trash2, Edit3,
@@ -36,6 +36,7 @@ export default function DeviceSales() {
   const [sales, setSales] = useState<DeviceSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [conditionFilter, setConditionFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -74,7 +75,7 @@ export default function DeviceSales() {
       logo: (settings as any)?.logo || ''
     };
     setPrintData(pData);
-    
+
     setTimeout(() => {
       if (window.self !== window.top) {
         alert('⚠️ المتصفح يمنع الطباعة داخل نافذة المعاينة لدواعي أمنية.\n\nمن فضلك افتح التطبيق في الـ Browser (Open in new tab).');
@@ -102,32 +103,57 @@ export default function DeviceSales() {
           'Authorization': `Bearer ${token}`
         }
       });
-
       if (!response.ok) throw new Error('فشل جلب مبيعات الأجهزة');
       const data = await response.json();
+
+      const deviceIds = data.map((d: any) => d.product_id).filter(Boolean);
+      let devicesMap: Record<string, any> = {};
+
+      if (deviceIds.length > 0) {
+        const chunkArray = (arr: any[], size: number) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
+        const chunks = chunkArray(deviceIds, 50);
+
+        for (const chunk of chunks) {
+          const deviceQuery = chunk.join(',');
+          const devicesResponse = await fetch(`${baseUrl}/Devices?id=in.(${deviceQuery})`, {
+            headers: {
+              'apikey': apiKey,
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (devicesResponse.ok) {
+            const devicesData = await devicesResponse.json();
+            devicesData.forEach((d: any) => {
+              devicesMap[d.id] = d;
+            });
+          }
+        }
+      }
 
       const mappedSales: DeviceSale[] = data
         .filter((item: any) => {
           const name = item.product_name || item.item_name || '';
           return !name.includes('(مرتجع)');
         })
-        .map((item: any) => ({
-          id: item.id,
-          saleNumber: item.Sales_Invoices?.invoice_number || `#${item.id}`,
-          brand: 'جهاز', // We might need to fetch more details if we want brand/model separately
-          model: item.product_name,
-          capacity: '-',
-          price: item.unit_price,
-          cost: 0, // Cost is not in Sales_Items
-          paid: item.total_price,
-          imei: '-',
-          condition: '-',
-          customer: item.Sales_Invoices?.customer_name || 'عميل نقدي',
-          date: new Date(item.Sales_Invoices?.created_at).toLocaleString('ar-EG'),
-          rawDate: item.Sales_Invoices?.created_at,
-          status: 'completed'
-        }));
-
+        .map((item: any) => {
+          const device = devicesMap[item.product_id] || {};
+          return {
+            id: item.id,
+            saleNumber: item.Sales_Invoices?.invoice_number || `#${item.id}`,
+            brand: device.company || 'جهاز',
+            model: device.model || item.product_name,
+            capacity: device.storage || '-',
+            price: item.unit_price,
+            cost: item.cost_price || device.cost_price || 0,
+            paid: item.total_price,
+            imei: device.imei1 || '-',
+            condition: device.condition || '-',
+            customer: item.Sales_Invoices?.customer_name || 'عميل نقدي',
+            date: new Date(item.Sales_Invoices?.created_at).toLocaleString('ar-EG'),
+            rawDate: item.Sales_Invoices?.created_at,
+            status: 'completed'
+          };
+        });
       setSales(mappedSales);
     } catch (error) {
       console.error(error);
@@ -142,26 +168,31 @@ export default function DeviceSales() {
   }, []);
 
   const filteredSales = sales.filter(sale => {
-    const matchesSearch = sale.model.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         sale.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         sale.customer.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const matchesSearch = sale.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.customer.toLowerCase().includes(searchTerm.toLowerCase());
+
     let matchesDate = true;
     const saleDate = new Date(sale.rawDate);
-    
+
     if (dateFrom) {
       const dFrom = new Date(dateFrom);
       dFrom.setHours(0, 0, 0, 0);
       if (saleDate < dFrom) matchesDate = false;
     }
-    
+
     if (dateTo) {
       const dTo = new Date(dateTo);
       dTo.setHours(23, 59, 59, 999);
       if (saleDate > dTo) matchesDate = false;
     }
 
-    return matchesSearch && matchesDate;
+    let matchesCondition = true;
+    if (conditionFilter !== 'all') {
+      matchesCondition = sale.condition === conditionFilter;
+    }
+
+    return matchesSearch && matchesDate && matchesCondition;
   });
 
   const setQuickFilter = (type: string) => {
@@ -211,10 +242,11 @@ export default function DeviceSales() {
       'النوع': sale.brand,
       'الموديل': sale.model,
       'السعة': sale.capacity,
+      'الحالة': sale.condition,
       'السعر': sale.price,
       'العميل': sale.customer,
       'التاريخ': sale.date,
-      'الحالة': sale.status === 'completed' ? 'مكتمل' : sale.status === 'pending' ? 'قيد الانتظار' : 'ملغي'
+      'حالة الدفع': sale.status === 'completed' ? 'مكتمل' : sale.status === 'pending' ? 'قيد الانتظار' : 'ملغي'
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -230,99 +262,13 @@ export default function DeviceSales() {
     <div className="flex flex-col lg:flex-row gap-6 h-full font-sans" dir="rtl">
       {/* Sidebar Filters & Stats */}
       <div className="w-full lg:w-85 space-y-6 shrink-0 order-2 lg:order-1">
-        {/* Main Actions */}
-        <div className="bg-white dark:bg-[#11151c]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 shadow-xl relative overflow-hidden group">
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none group-hover:bg-blue-500/20 transition-colors" />
-          
-          <div className="space-y-4 mb-6">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 ms-1">من</label>
-              <div className="relative">
-                <Calendar className="w-4 h-4 text-slate-500 absolute top-1/2 start-3 -translate-y-1/2" />
-                <input 
-                  type="date" 
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-2.5 ps-10 pe-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 ms-1">إلى</label>
-              <div className="relative">
-                <Calendar className="w-4 h-4 text-slate-500 absolute top-1/2 start-3 -translate-y-1/2" />
-                <input 
-                  type="date" 
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-2.5 ps-10 pe-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => fetchSales()}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mb-4 group/btn"
-          >
-            <RefreshCw className={`w-5 h-5 group-hover/btn:rotate-180 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
-            تحديث البيانات
-          </button>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button 
-              onClick={() => setQuickFilter('الكل')}
-              className="py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2"
-            >
-              الكل
-            </button>
-            <button 
-              onClick={() => setQuickFilter('اليوم')}
-              className="py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2"
-            >
-              <Calendar className="w-4 h-4" />
-              اليوم
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Filters */}
-        <div className="bg-white dark:bg-[#11151c]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 shadow-xl">
-          <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white">
-            <Zap className="w-5 h-5 text-orange-400" />
-            <h3 className="font-bold tracking-tight">فلاتر سريعة</h3>
-          </div>
-          
-          <div className="space-y-2">
-            {[
-              { label: 'اليوم', icon: CalendarDays },
-              { label: 'هذا الأسبوع', icon: History },
-              { label: 'هذا الشهر', icon: Target },
-              { label: 'آخر 30 يوم', icon: Zap }
-            ].map((item) => (
-              <button 
-                key={item.label}
-                onClick={() => setQuickFilter(item.label)}
-                className={`w-full py-3 px-4 text-start text-sm font-medium transition-all border rounded-2xl flex items-center gap-3 group ${
-                  (item.label === 'اليوم' && dateFrom === new Date().toISOString().split('T')[0])
-                    ? 'text-blue-400 bg-blue-500/5 border-blue-500/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-blue-400 hover:bg-blue-500/5 border-transparent hover:border-blue-500/20'
-                }`}
-              >
-                <item.icon className="w-4 h-4 transition-colors" />
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Quick Stats */}
         <div className="bg-white dark:bg-[#11151c]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 shadow-xl">
           <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white">
             <TrendingUp className="w-5 h-5 text-emerald-400" />
             <h3 className="font-bold tracking-tight">إحصائيات سريعة</h3>
           </div>
-          
+
           <div className="space-y-4">
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-1 h-full bg-emerald-500 opacity-50" />
@@ -344,13 +290,120 @@ export default function DeviceSales() {
           </div>
         </div>
 
+        {/* Main Actions */}
+        <div className="bg-white dark:bg-[#11151c]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 shadow-xl relative overflow-hidden group">
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 blur-[60px] rounded-full pointer-events-none group-hover:bg-blue-500/20 transition-colors" />
+
+          <div className="space-y-4 mb-6">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 ms-1">من</label>
+              <div className="relative">
+                <Calendar className="w-4 h-4 text-slate-500 absolute top-1/2 start-3 -translate-y-1/2" />
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-2.5 ps-10 pe-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 ms-1">إلى</label>
+              <div className="relative">
+                <Calendar className="w-4 h-4 text-slate-500 absolute top-1/2 start-3 -translate-y-1/2" />
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-2.5 ps-10 pe-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => fetchSales()}
+            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mb-4 group/btn"
+          >
+            <RefreshCw className={`w-5 h-5 group-hover/btn:rotate-180 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
+            تحديث البيانات
+          </button>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setQuickFilter('الكل')}
+              className="py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+            >
+              الكل
+            </button>
+            <button
+              onClick={() => setQuickFilter('اليوم')}
+              className="py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              اليوم
+            </button>
+          </div>
+        </div>
+
+        {/* Condition Filter */}
+        <div className="bg-white dark:bg-[#11151c]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 shadow-xl">
+          <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white">
+            <Smartphone className="w-5 h-5 text-blue-400" />
+            <h3 className="font-bold tracking-tight">حالة الجهاز</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => setConditionFilter('all')}
+              className={`py-3 px-2 rounded-2xl text-xs font-bold transition-all border ${conditionFilter === 'all' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/5 hover:border-blue-500/30'}`}
+            >الكل</button>
+            <button
+              onClick={() => setConditionFilter('جديد')}
+              className={`py-3 px-2 rounded-2xl text-xs font-bold transition-all border ${conditionFilter === 'جديد' ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20' : 'bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/5 hover:border-emerald-500/30'}`}
+            >جديد</button>
+            <button
+              onClick={() => setConditionFilter('مستعمل')}
+              className={`py-3 px-2 rounded-2xl text-xs font-bold transition-all border ${conditionFilter === 'مستعمل' ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20' : 'bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/5 hover:border-orange-500/30'}`}
+            >مستعمل</button>
+          </div>
+        </div>
+
+        {/* Quick Filters */}
+        <div className="bg-white dark:bg-[#11151c]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 shadow-xl">
+          <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white">
+            <Zap className="w-5 h-5 text-orange-400" />
+            <h3 className="font-bold tracking-tight">فلاتر سريعة</h3>
+          </div>
+
+          <div className="space-y-2">
+            {[
+              { label: 'اليوم', icon: CalendarDays },
+              { label: 'هذا الأسبوع', icon: History },
+              { label: 'هذا الشهر', icon: Target },
+              { label: 'آخر 30 يوم', icon: Zap }
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={() => setQuickFilter(item.label)}
+                className={`w-full py-3 px-4 text-start text-sm font-medium transition-all border rounded-2xl flex items-center gap-3 group ${(item.label === 'اليوم' && dateFrom === new Date().toISOString().split('T')[0])
+                    ? 'text-blue-400 bg-blue-500/5 border-blue-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-blue-400 hover:bg-blue-500/5 border-transparent hover:border-blue-500/20'
+                  }`}
+              >
+                <item.icon className="w-4 h-4 transition-colors" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Best Sellers */}
         <div className="bg-white dark:bg-[#11151c]/80 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 shadow-xl">
           <div className="flex items-center gap-2 mb-6 text-slate-900 dark:text-white">
             <Star className="w-5 h-5 text-yellow-400" />
             <h3 className="font-bold tracking-tight">الأكثر مبيعاً</h3>
           </div>
-          
+
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
               <div className="flex items-center gap-3">
@@ -374,8 +427,8 @@ export default function DeviceSales() {
             <div className="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none">
               <Search className="w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
             </div>
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="ابحث في المبيعات... (موديل، نوع، عميل، سعر)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -388,13 +441,13 @@ export default function DeviceSales() {
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-white dark:bg-[#11151c] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
-              <button 
+              <button
                 onClick={() => setViewMode('table')}
                 className={`p-2 rounded-xl transition-all ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}
               >
                 <List className="w-5 h-5" />
               </button>
-              <button 
+              <button
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}
               >
@@ -402,7 +455,7 @@ export default function DeviceSales() {
               </button>
             </div>
 
-            <button 
+            <button
               onClick={exportToExcel}
               className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 dark:text-white px-6 py-3.5 rounded-2xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20 group"
             >
@@ -434,7 +487,7 @@ export default function DeviceSales() {
         {/* Sales Table/Grid Container */}
         <div className="flex-1 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl relative">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-          
+
           <div className="overflow-x-auto flex-1 custom-scrollbar relative z-10">
             {viewMode === 'table' ? (
               <table className="w-full text-start border-collapse">
@@ -445,6 +498,7 @@ export default function DeviceSales() {
                     <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-start">النوع</th>
                     <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-start">الموديل</th>
                     <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-center">السعة</th>
+                    <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-center">الحالة</th>
                     <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-center">السعر</th>
                     <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-start">العميل</th>
                     <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-start">التاريخ</th>
@@ -454,7 +508,7 @@ export default function DeviceSales() {
                 <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                   <AnimatePresence mode="popLayout">
                     {filteredSales.map((sale, index) => (
-                      <motion.tr 
+                      <motion.tr
                         key={sale.id}
                         layout
                         initial={{ opacity: 0, x: -20 }}
@@ -480,18 +534,23 @@ export default function DeviceSales() {
                           <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-white/5 text-xs font-bold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 font-mono">{sale.capacity}GB</span>
                         </td>
                         <td className="px-6 py-5 text-center">
+                          <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${sale.condition === 'جديد' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                              sale.condition === 'مستعمل' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
+                                'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5'
+                            }`}>{sale.condition}</span>
+                        </td>
+                        <td className="px-6 py-5 text-center">
                           <div className="text-sm font-black text-emerald-500 font-mono tracking-tighter">{sale.price.toLocaleString()}</div>
                         </td>
                         <td className="px-6 py-5 text-sm text-slate-500 font-medium">{sale.customer}</td>
                         <td className="px-6 py-5 text-sm text-slate-500 font-mono whitespace-nowrap">{sale.date}</td>
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${
-                              sale.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
-                              sale.status === 'pending' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]' :
-                              'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
-                            }`} />
-                            <button 
+                            <div className={`w-2 h-2 rounded-full ${sale.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+                                sale.status === 'pending' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]' :
+                                  'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
+                              }`} />
+                            <button
                               onClick={() => setSelectedSale(sale)}
                               className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
                             >
@@ -518,7 +577,7 @@ export default function DeviceSales() {
                       className="bg-slate-50 dark:bg-white/2 border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 hover:border-blue-500/30 transition-all group relative overflow-hidden"
                     >
                       <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 blur-[40px] rounded-full pointer-events-none group-hover:bg-blue-500/10 transition-colors" />
-                      
+
                       <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#11151c] flex items-center justify-center border border-slate-200 dark:border-white/5 shadow-sm group-hover:scale-110 transition-transform">
@@ -529,13 +588,12 @@ export default function DeviceSales() {
                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{sale.brand}</div>
                           </div>
                         </div>
-                        <div className={`w-3 h-3 rounded-full ${
-                          sale.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' :
-                          sale.status === 'pending' ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]' :
-                          'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
-                        }`} />
+                        <div className={`w-3 h-3 rounded-full ${sale.status === 'completed' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' :
+                            sale.status === 'pending' ? 'bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]' :
+                              'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
+                          }`} />
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4 mb-6">
                         <div className="p-4 rounded-2xl bg-white dark:bg-[#080c13] border border-slate-200 dark:border-white/5">
                           <div className="text-[10px] text-slate-500 mb-1 uppercase font-bold tracking-widest">السعر</div>
@@ -550,7 +608,7 @@ export default function DeviceSales() {
                       <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-white/5">
                         <div className="text-[10px] font-bold text-slate-500 font-mono">{sale.date}</div>
                         <div className="flex items-center gap-1">
-                          <button 
+                          <button
                             onClick={() => setSelectedSale(sale)}
                             className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
                           >
@@ -591,14 +649,14 @@ export default function DeviceSales() {
       <AnimatePresence>
         {selectedSale && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedSale(null)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -612,7 +670,7 @@ export default function DeviceSales() {
                   </div>
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white">تفاصيل عملية البيع</h2>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedSale(null)}
                   className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
                 >
@@ -683,7 +741,7 @@ export default function DeviceSales() {
                   <div className="bg-slate-50 dark:bg-white/2 border border-slate-200 dark:border-white/5 rounded-2xl p-5 flex justify-between items-center">
                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">الهامش</div>
                     <div className="text-lg font-bold text-emerald-500 font-mono">
-                      EGP ({( (selectedSale.price - selectedSale.cost) / selectedSale.cost * 100 ).toFixed(1)}%) {(selectedSale.price - selectedSale.cost).toLocaleString()}
+                      EGP ({((selectedSale.price - selectedSale.cost) / selectedSale.cost * 100).toFixed(1)}%) {(selectedSale.price - selectedSale.cost).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -709,14 +767,14 @@ export default function DeviceSales() {
 
               {/* Modal Footer */}
               <div className="p-8 bg-slate-50 dark:bg-white/2 border-t border-slate-200 dark:border-white/5 flex gap-4">
-                <button 
+                <button
                   onClick={() => handlePrint(selectedSale)}
                   className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 group"
                 >
                   <Printer className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                   طباعة
                 </button>
-                <button 
+                <button
                   onClick={() => setSelectedSale(null)}
                   className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-white rounded-2xl font-bold transition-all border border-slate-200 dark:border-white/5"
                 >

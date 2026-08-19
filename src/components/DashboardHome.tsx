@@ -117,8 +117,8 @@ export default function DashboardHome({ setActiveView }: { setActiveView: (view:
         // 1. Treasury, Sales, Expenses, and Customers
         const [walletsRes, todayTxsRes, treas30dRes, inv30dRes, recentActRes, custRes, expRes, recentMaintRes] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/wallets?select=balance${branchOrTenantQuery}`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/treasury_transactions?select=amount,type&created_at=gte.${todayDate}T00:00:00Z${branchOrTenantQuery}`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/treasury_transactions?select=amount,type,created_at&created_at=gte.${thirtyDaysAgo.toISOString()}${branchOrTenantQuery}`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/treasury_transactions?select=amount,type,category&created_at=gte.${todayDate}T00:00:00Z${branchOrTenantQuery}`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/treasury_transactions?select=amount,type,category,created_at&created_at=gte.${thirtyDaysAgo.toISOString()}${branchOrTenantQuery}`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/Sales_Invoices?select=id,customer_name,net_amount,payment_method,created_at&created_at=gte.${thirtyDaysAgo.toISOString()}${branchOrTenantQuery}`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/Sales_Invoices?select=id,customer_name,net_amount,created_at&order=created_at.desc&limit=15${branchOrTenantQuery}`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/clients?select=id${branchOrTenantQuery}`, { headers }),
@@ -137,13 +137,19 @@ export default function DashboardHome({ setActiveView }: { setActiveView: (view:
         if (todayTxsRes.ok) {
           const tData = await todayTxsRes.json();
           todaySales = tData.filter((t: any) => t.type === 'in' || t.type === 'income').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
-          todayExpenses = tData.filter((t: any) => t.type === 'out' || t.type === 'expense').reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+          todayExpenses = tData.filter((t: any) => {
+             const isOut = t.type === 'out' || t.type === 'expense';
+             const isPartner = t.category?.includes('سحوبات') || t.category?.includes('شريك') || t.category?.includes('شركاء') || t.category?.includes('أرباح');
+             return isOut && !isPartner;
+          }).reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
         }
 
         let expensesList: any[] = [];
         if (expRes.ok) {
           const expData = await expRes.json();
-          expensesList = expData;
+          expensesList = expData.filter((t: any) => {
+             return !(t.category?.includes('سحوبات') || t.category?.includes('شريك') || t.category?.includes('شركاء') || t.category?.includes('أرباح'));
+          });
         }
 
         let customersCount = 0;

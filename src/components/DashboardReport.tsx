@@ -66,12 +66,22 @@ export default function DashboardReport() {
       setIsLoading(true);
       try {
         const token = localStorage.getItem("access_token");
+        const tenantId = localStorage.getItem("tenant_id") || localStorage.getItem("user_id");
+        const activeBranchId = localStorage.getItem("takka_active_branch_id");
+        
         const headers = {
           apikey: SUPABASE_KEY,
           Authorization: `Bearer ${token}`,
         };
 
-        const branchSuffix = crossBranch ? "&bypass_branch=true" : "";
+        let tenantSuffix = `&tenant_id=eq.${tenantId}`;
+        let branchSuffix = tenantSuffix;
+        let repairsBranchSuffix = tenantSuffix;
+        
+        if (!crossBranch && activeBranchId && activeBranchId !== 'ALL') {
+           branchSuffix += `&branch_id=eq.${activeBranchId}`;
+           repairsBranchSuffix += `&receiving_branch_id=eq.${activeBranchId}`;
+        }
 
         const [
           salesRes,
@@ -88,21 +98,21 @@ export default function DashboardReport() {
             { headers },
           ),
           fetch(
-            `${SUPABASE_URL}/rest/v1/Devices?select=id,quantity,cost_price,selling_price,status&limit=10000`,
+            `${SUPABASE_URL}/rest/v1/Devices?select=id,cost_price,status&limit=10000${branchSuffix}`,
             { headers },
           ),
           fetch(
-            `${SUPABASE_URL}/rest/v1/Accessories?select=id,quantity,cost_price,selling_price&limit=10000`,
+            `${SUPABASE_URL}/rest/v1/Accessories?select=id,quantity,cost_price,selling_price&limit=10000${branchSuffix}`,
             { headers },
           ),
           fetch(
-            `${SUPABASE_URL}/rest/v1/spare_parts?select=id,quantity,cost_price,selling_price&limit=10000`,
+            `${SUPABASE_URL}/rest/v1/spare_parts?select=id,quantity,cost_price,sell_price&limit=10000${branchSuffix}`,
             { headers },
           ),
-          fetch(`${SUPABASE_URL}/rest/v1/Repairs?select=*&limit=10000${branchSuffix.replace('branch_id', 'receiving_branch_id')}`, {
+          fetch(`${SUPABASE_URL}/rest/v1/Repairs?select=*&limit=10000${repairsBranchSuffix}`, {
             headers,
           }),
-          fetch(`${SUPABASE_URL}/rest/v1/partners?select=*${branchSuffix}`, {
+          fetch(`${SUPABASE_URL}/rest/v1/partners?select=*${tenantSuffix}`, {
             headers,
           }),
           fetch(
@@ -337,8 +347,8 @@ export default function DashboardReport() {
           dCount = 0;
         if (devicesRes.ok) {
           const ds = devsData;
-          const availableStatuses = ['متاح', 'متوفر', 'في المخزن', 'available', 'in_stock'];
-          const available = ds.filter((d: any) => availableStatuses.includes(d.status) || (!d.status && d.quantity > 0));
+          const excludedStatuses = ['مباع', 'sold', 'sold_installment', 'on_installment', 'مرفوض', 'مرتجع', 'محجوز', 'reserved', 'in_transit'];
+          const available = ds.filter((d: any) => !excludedStatuses.includes(d.status));
           dCount = available.length;
           dVal = available.reduce(
             (s: number, i: any) => s + Number(i.cost_price || 0),
@@ -382,7 +392,7 @@ export default function DashboardReport() {
           const ps = await partnersRes.json();
           pCount = ps.length;
           pCapital = ps.reduce(
-            (s: number, i: any) => s + Number(i.capital || 0),
+            (s: number, i: any) => s + Number(i.investment || i.capital || 0),
             0,
           );
         }
@@ -491,7 +501,7 @@ export default function DashboardReport() {
       </div>
 
       {/* KPIs Grid */}
-      <div className="flex flex-nowrap overflow-x-auto lg:grid lg:grid-cols-7 gap-4 xl:gap-2 mb-6 pb-2 scrollbar-thin">
+      <div className="flex flex-nowrap overflow-x-auto lg:grid lg:grid-cols-4 2xl:grid-cols-8 gap-4 mb-6 pb-2 scrollbar-thin">
         {/* 1. إجمالي المبيعات */}
         <div className="min-w-[190px] mr-1 bg-slate-50 dark:bg-[#161b22] border-r-4 border-r-emerald-500 rounded-xl p-4 border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-md flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">

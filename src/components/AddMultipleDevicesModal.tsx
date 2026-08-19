@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  X, Package, LayoutGrid, Settings, DollarSign, 
+import {
+  X, Package, LayoutGrid, Settings, DollarSign,
   Store, ClipboardPaste, Plus, Trash2, Save, Loader2,
   AlertCircle
-, Battery } from 'lucide-react';
+  , Battery
+} from 'lucide-react';
 import { useBranch } from '../contexts/BranchContext';
 
 interface AddMultipleDevicesModalProps {
@@ -14,15 +15,15 @@ interface AddMultipleDevicesModalProps {
   entryType?: 'purchase' | 'manual' | 'import';
 }
 
-export default function AddMultipleDevicesModal({ 
-  isOpen, 
-  onClose, 
+export default function AddMultipleDevicesModal({
+  isOpen,
+  onClose,
   onSuccess,
   entryType = 'purchase'
 }: AddMultipleDevicesModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
   const { isOwner, branches, currentBranchId } = useBranch();
 
@@ -70,7 +71,7 @@ export default function AddMultipleDevicesModal({
 
   const addRow = () => {
     setDevicesList(prev => [
-      ...prev, 
+      ...prev,
       { id: Date.now(), imei1: '', imei2: '', color: globalColor, barcode: '', battery_percentage: '' }
     ]);
   };
@@ -105,7 +106,7 @@ export default function AddMultipleDevicesModal({
       const token = localStorage.getItem('access_token');
       const userId = localStorage.getItem('user_id');
       const tenantId = localStorage.getItem('tenant_id') || userId;
-      
+
       const targetBranchId = (isOwner && selectedBranchId) ? selectedBranchId : (currentBranchId && currentBranchId !== 'ALL' ? currentBranchId : null);
 
       let formWarehouseId: string | null = null;
@@ -215,17 +216,17 @@ export default function AddMultipleDevicesModal({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:pr-72" dir="rtl">
-        <motion.div 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          exit={{ opacity: 0 }} 
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           className="absolute inset-0 bg-slate-50 dark:bg-[#080c13]/80 backdrop-blur-sm"
           onClick={onClose}
         />
-        
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }} 
-          animate={{ opacity: 1, scale: 1, y: 0 }} 
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="relative w-full max-w-4xl bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         >
@@ -237,7 +238,7 @@ export default function AddMultipleDevicesModal({
               </div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">إضافة سريعة متعددة</h2>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 rounded-xl transition-colors"
             >
@@ -266,7 +267,7 @@ export default function AddMultipleDevicesModal({
                   <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                     <Store className="w-4 h-4 text-cyan-400" /> الفرع الذي سيتم إضافة الأجهزة إليه
                   </label>
-                  <select 
+                  <select
                     value={selectedBranchId} onChange={(e) => setSelectedBranchId(e.target.value)} required
                     className="w-full bg-white dark:bg-[#11151c] border border-cyan-500/20 rounded-xl px-4 py-3 text-sm text-cyan-500 focus:border-cyan-500 outline-none transition-all appearance-none"
                   >
@@ -280,7 +281,7 @@ export default function AddMultipleDevicesModal({
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">نوع الإدخال</label>
-                  <select 
+                  <select
                     name="entry_type" value={sharedData.entry_type} onChange={handleSharedChange}
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   >
@@ -291,7 +292,7 @@ export default function AddMultipleDevicesModal({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">الشركة</label>
-                  <select 
+                  <select
                     name="company" value={sharedData.company} onChange={handleSharedChange}
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   >
@@ -303,7 +304,7 @@ export default function AddMultipleDevicesModal({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">الموديل</label>
-                  <input 
+                  <input
                     type="text" name="model" value={sharedData.model} onChange={handleSharedChange}
                     placeholder="مثال: Galaxy A54"
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
@@ -311,7 +312,7 @@ export default function AddMultipleDevicesModal({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">السعة</label>
-                  <select 
+                  <select
                     name="storage" value={sharedData.storage} onChange={handleSharedChange}
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   >
@@ -319,23 +320,32 @@ export default function AddMultipleDevicesModal({
                     <option value="64GB">64GB</option>
                     <option value="128GB">128GB</option>
                     <option value="256GB">256GB</option>
+                    <option value="512GB">512GB</option>
+                    <option value="1TB">1TB</option>
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">الرام</label>
-                  <select 
+                  <select
                     name="ram" value={sharedData.ram} onChange={handleSharedChange}
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   >
                     <option value="">-- اختر --</option>
                     <option value="4GB">4GB</option>
                     <option value="8GB">8GB</option>
+                    <option value="12GB">12GB</option>
+                    <option value="16GB">16GB</option>
+                    <option value="24GB">24GB</option>
+                    <option value="32GB">32GB</option>
+                    <option value="48GB">48GB</option>
+                    <option value="64GB">64GB</option>
+                    <option value="128GB">128GB</option>
                   </select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">الحالة</label>
-                  <select 
+                  <select
                     name="condition" value={sharedData.condition} onChange={handleSharedChange}
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   >
@@ -345,7 +355,7 @@ export default function AddMultipleDevicesModal({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">الكرتونة</label>
-                  <select 
+                  <select
                     name="has_box" value={sharedData.has_box.toString()} onChange={handleSharedChange}
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   >
@@ -355,7 +365,7 @@ export default function AddMultipleDevicesModal({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">سعر الشراء</label>
-                  <input 
+                  <input
                     type="number" name="cost_price" value={sharedData.cost_price} onChange={handleSharedChange}
                     placeholder="0"
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
@@ -363,7 +373,7 @@ export default function AddMultipleDevicesModal({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">سعر البيع</label>
-                  <input 
+                  <input
                     type="number" name="selling_price" value={sharedData.selling_price} onChange={handleSharedChange}
                     placeholder="0"
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
@@ -373,7 +383,7 @@ export default function AddMultipleDevicesModal({
 
               <div className="mt-4 w-full md:w-1/4">
                 <label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">المخزن</label>
-                <select 
+                <select
                   name="warehouse" value={sharedData.warehouse} onChange={handleSharedChange}
                   className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                 >
@@ -417,34 +427,34 @@ export default function AddMultipleDevicesModal({
                       <tr key={device.id}>
                         <td className="py-3 font-bold text-slate-500">{index + 1}</td>
                         <td className="py-3 pr-2">
-                          <input 
+                          <input
                             type="text" value={device.imei1} onChange={(e) => handleDeviceChange(device.id, 'imei1', e.target.value)}
                             placeholder="IMEI 1"
                             className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                           />
                         </td>
                         <td className="py-3 pr-2">
-                          <input 
+                          <input
                             type="text" value={device.imei2} onChange={(e) => handleDeviceChange(device.id, 'imei2', e.target.value)}
                             placeholder="IMEI 2"
                             className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                           />
                         </td>
                         <td className="py-3 pr-2">
-                          <input 
+                          <input
                             type="text" value={device.color} onChange={(e) => handleDeviceChange(device.id, 'color', e.target.value)}
                             className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                           />
                         </td>
                         <td className="py-3 pr-2">
-                          <input 
+                          <input
                             type="text" value={device.barcode} onChange={(e) => handleDeviceChange(device.id, 'barcode', e.target.value)}
                             placeholder="اختياري - امسح البار"
                             className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                           />
                         </td>
                         <td className="py-3 pr-2">
-                          <button 
+                          <button
                             onClick={() => removeRow(device.id)}
                             className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-slate-900 dark:text-white rounded-lg transition-colors"
                           >
@@ -459,7 +469,7 @@ export default function AddMultipleDevicesModal({
 
               <div className="mt-4 flex items-center justify-end gap-3 p-4 bg-white dark:bg-[#11151c] rounded-xl border border-slate-200 dark:border-white/5">
                 <span className="text-sm text-slate-500 dark:text-slate-400">تطبيق لون على الكل:</span>
-                <input 
+                <input
                   type="text" value={globalColor} onChange={(e) => setGlobalColor(e.target.value)}
                   className="bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-sm text-slate-900 dark:text-white w-24 outline-none"
                 />
@@ -489,13 +499,13 @@ export default function AddMultipleDevicesModal({
 
           {/* Footer */}
           <div className="p-6 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] shrink-0 flex items-center justify-end gap-3">
-            <button 
+            <button
               onClick={onClose}
               className="px-6 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 transition-colors"
             >
               إلغاء
             </button>
-            <button 
+            <button
               onClick={handleSubmit}
               disabled={isLoading}
               className="bg-emerald-600 hover:bg-emerald-500 text-slate-900 dark:text-white px-8 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
