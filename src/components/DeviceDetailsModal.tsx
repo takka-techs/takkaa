@@ -409,11 +409,11 @@ export default function DeviceDetailsModal({ isOpen, onClose, device }: DeviceDe
           initial={{ opacity: 0, scale: 0.9, y: 30 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
           exit={{ opacity: 0, scale: 0.9, y: 30 }}
-          className="relative w-full max-w-4xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-4xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-3xl md:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] md:max-h-[90vh]"
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] relative shrink-0">
-            <div className="flex items-center gap-5">
+          <div className="flex items-center justify-between p-4 sm:p-6 md:p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] relative shrink-0">
+            <div className="flex items-center gap-3 sm:gap-5">
               <div className="w-14 h-14 bg-teal-500/20 text-teal-600 dark:text-teal-400 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/10">
                 <FileText className="w-7 h-7" />
               </div>
@@ -450,9 +450,9 @@ export default function DeviceDetailsModal({ isOpen, onClose, device }: DeviceDe
           </div>
 
           {/* Body */}
-          <div ref={printRef} className="flex-1 overflow-y-auto p-8 pt-6 space-y-10 custom-scrollbar bg-white dark:bg-[#111827]">
+          <div ref={printRef} className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 pt-4 sm:pt-6 space-y-6 sm:space-y-10 custom-scrollbar bg-white dark:bg-[#111827]">
             
-            {/* Device Info Section */}
+            {/* Main Info Section */}
             <section className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
@@ -479,7 +479,7 @@ export default function DeviceDetailsModal({ isOpen, onClose, device }: DeviceDe
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <DetailItem icon={ShieldCheck} label="الحالة" value={device.condition} colorClass="text-blue-600 dark:text-blue-400" />
                     <DetailItem icon={Box} label="العلبة" value={device.has_box ? 'مع علبة' : 'بدون علبة'} colorClass={device.has_box ? "text-emerald-600 dark:text-emerald-400" : "text-orange-600 dark:text-orange-400"} />
                   </div>
@@ -528,7 +528,7 @@ export default function DeviceDetailsModal({ isOpen, onClose, device }: DeviceDe
                 </h3>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                 <DetailItem icon={DollarSign} label="سعر الشراء" value={`${device.cost_price.toLocaleString()} ج.م`} colorClass="text-emerald-600 dark:text-emerald-400 text-xl" mono />
                 <DetailItem icon={TrendingUp} label="سعر البيع قطاعي" value={`${device.selling_price.toLocaleString()} ج.م`} colorClass="text-blue-600 dark:text-blue-400 text-xl" mono />
                 {device.wholesale_price && (

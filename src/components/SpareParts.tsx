@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Search, Plus, Filter, MoreVertical, Edit2, Trash2, 
+import {
+  Search, Plus, Filter, MoreVertical, Edit2, Trash2,
   Eye, AlertTriangle, Package, TrendingUp, DollarSign,
   ChevronRight, ChevronLeft, Download, Printer, Settings2,
   Loader2, Trash, FileText, Tag, Upload, ArrowUpDown,
-  ArrowUp, ArrowDown, LayoutGrid, List as ListIcon
+  ArrowUp, ArrowDown, LayoutGrid, List as ListIcon, X
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import AddSparePartModal from './AddSparePartModal';
@@ -43,7 +43,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
   const [selectedCategory, setSelectedCategory] = useState('الكل');
   const [statusFilter, setStatusFilter] = useState('الكل');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [sortConfig, setSortConfig] = React.useState<{key: string, direction: 'asc'|'desc'} | null>(null);
+  const [sortConfig, setSortConfig] = React.useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
   // Core array states
@@ -63,7 +63,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<SparePart | null>(null);
   const [transferPart, setTransferPart] = useState<SparePart | null>(null);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -99,11 +99,11 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
       let targetWarehouseId = warehouse?.id;
       const token = localStorage.getItem('access_token');
       const activeBranchId = localStorage.getItem("takka_active_branch_id");
-      
+
       if (!targetWarehouseId && !warehouse) {
         if (!activeBranchId || activeBranchId === 'ALL') {
-           setResolvedWarehouseId('ALL');
-           targetWarehouseId = 'ALL';
+          setResolvedWarehouseId('ALL');
+          targetWarehouseId = 'ALL';
         } else {
           // Find default device warehouse for the branch
           let url = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Warehouses?select=id&type=eq.spare_parts&is_default=eq.true&branch_id=eq.${activeBranchId}`;
@@ -115,21 +115,21 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
           });
           let whData = await whRes.json();
           if (!Array.isArray(whData) || whData.length === 0) {
-             let url2 = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Warehouses?select=id&type=eq.spare_parts&branch_id=eq.${activeBranchId}&order=created_at.asc&limit=1`;
-             whRes = await fetch(url2, {
-               headers: {
-                 'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
-                 'Authorization': `Bearer ${token}`
-               }
-             });
-             whData = await whRes.json();
-              if (Array.isArray(whData) && whData.length > 0) {
-               targetWarehouseId = whData[0].id.toString();
-               setResolvedWarehouseId(targetWarehouseId);
-             } else {
-               targetWarehouseId = 'ALL';
-               setResolvedWarehouseId('ALL');
-             }
+            let url2 = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Warehouses?select=id&type=eq.spare_parts&branch_id=eq.${activeBranchId}&order=created_at.asc&limit=1`;
+            whRes = await fetch(url2, {
+              headers: {
+                'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            whData = await whRes.json();
+            if (Array.isArray(whData) && whData.length > 0) {
+              targetWarehouseId = whData[0].id.toString();
+              setResolvedWarehouseId(targetWarehouseId);
+            } else {
+              targetWarehouseId = 'ALL';
+              setResolvedWarehouseId('ALL');
+            }
           } else {
             targetWarehouseId = whData[0].id.toString();
             setResolvedWarehouseId(targetWarehouseId);
@@ -336,16 +336,16 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
 
   const filteredParts = React.useMemo(() => {
     let result = parts.filter(part => {
-      const matchesSearch = part.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           (part.sku && part.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                           (part.barcode && part.barcode.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSearch = part.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (part.sku && part.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (part.barcode && part.barcode.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesCategory = selectedCategory === 'الكل' || part.category === selectedCategory;
-      
+
       const status = getStatusInfo(part.quantity).value;
-      const matchesStatus = statusFilter === 'الكل' || 
-                           (statusFilter === 'متوفر' && status === 'available') ||
-                           (statusFilter === 'على وشك النفاد' && status === 'low') ||
-                           (statusFilter === 'غير متوفر' && status === 'out');
+      const matchesStatus = statusFilter === 'الكل' ||
+        (statusFilter === 'متوفر' && status === 'available') ||
+        (statusFilter === 'على وشك النفاد' && status === 'low') ||
+        (statusFilter === 'غير متوفر' && status === 'out');
 
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -396,69 +396,69 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
   return (
     <div className="space-y-6" dir="rtl">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-3xl p-6 relative overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden">
         <div className="absolute top-0 end-0 w-64 h-64 bg-teal-500/10 blur-[80px] rounded-full pointer-events-none" />
-        <div className="relative z-10 flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-teal-600 to-teal-400 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(20,184,166,0.3)]">
-            <Settings2 className="w-7 h-7 text-white" />
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="w-11 h-11 sm:w-14 sm:h-14 shrink-0 bg-gradient-to-br from-teal-600 to-teal-400 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(20,184,166,0.3)]">
+            <Settings2 className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white mb-0.5 sm:mb-1 truncate">
               {warehouse ? warehouse.name : 'مخزن قطع الغيار'}
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {warehouse ? (warehouse.description || 'إدارة وتتبع قطع الغيار في هذا المخزن') : 'إدارة وتتبع قطع الغيار المتوفرة في المخزن الافتراضي'}
             </p>
           </div>
         </div>
-        <div className="relative z-10 flex items-center gap-3">
+        <div className="relative z-10 flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
           {selectedItems.length > 0 && (
-            <button 
+            <button
               onClick={() => setIsBulkEditModalOpen(true)}
-              className="flex items-center gap-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-purple-500/20"
+              className="flex items-center gap-1.5 sm:gap-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-colors border border-purple-500/20"
             >
               <Edit2 className="w-4 h-4" />
               تعديل مجمع ({selectedItems.length})
             </button>
           )}
-          <button 
+          <button
             onClick={resolveAndFetch}
-            className="flex items-center gap-2 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
           >
             <Loader2 className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             تحديث
           </button>
-          <button 
+          <button
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
           >
             <Upload className="w-4 h-4" />
             استيراد
           </button>
-          <button 
+          <button
             onClick={handleExport}
-            className="flex items-center gap-2 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
           >
             <Download className="w-4 h-4" />
             تصدير
           </button>
-          <button 
+          <button
             onClick={() => setIsBarcodeModalOpen(true)}
-            className="flex items-center gap-2 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
           >
             <Printer className="w-4 h-4" />
             طباعة باركود
           </button>
-          <button 
+          <button
             onClick={() => setIsAddMultipleModalOpen(true)}
-            className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+            className="flex items-center gap-1.5 sm:gap-2 bg-indigo-500 hover:bg-indigo-400 text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-[0_0_15px_rgba(99,102,241,0.3)]"
           >
             <Package className="w-4 h-4" />
             إضافة متعددة
           </button>
-          <button 
+          <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(20,184,166,0.3)]"
+            className="flex items-center gap-1.5 sm:gap-2 bg-teal-500 hover:bg-teal-400 text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-[0_0_15px_rgba(20,184,166,0.3)]"
           >
             <Plus className="w-4 h-4" />
             إضافة قطعة جديدة
@@ -468,7 +468,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.div 
+        <motion.div
           whileHover={{ y: -5 }}
           className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all"
         >
@@ -483,7 +483,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           whileHover={{ y: -5 }}
           className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all"
         >
@@ -498,7 +498,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           whileHover={{ y: -5 }}
           className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all"
         >
@@ -513,7 +513,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           whileHover={{ y: -5 }}
           className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all"
         >
@@ -532,8 +532,8 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="w-5 h-5 text-slate-400 absolute top-1/2 start-4 -translate-y-1/2" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="بحث باسم القطعة أو SKU..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -541,13 +541,13 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
             />
           </div>
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl p-1">
-            <button 
+            <button
               onClick={() => setViewMode('table')}
               className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white dark:bg-white/10 text-teal-400 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
             >
               <ListIcon className="w-5 h-5" />
             </button>
-            <button 
+            <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-white/10 text-teal-400 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
             >
@@ -555,7 +555,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
             </button>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-100 dark:border-white/5">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-400">الفئة:</span>
@@ -564,18 +564,17 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    selectedCategory === cat 
-                      ? 'bg-teal-500 text-slate-900 dark:text-white' 
-                      : 'bg-slate-50 dark:bg-[#080c13] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 hover:border-teal-500/30'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedCategory === cat
+                    ? 'bg-teal-500 text-slate-900 dark:text-white'
+                    : 'bg-slate-50 dark:bg-[#080c13] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 hover:border-teal-500/30'
+                    }`}
                 >
                   {cat}
                 </button>
               ))}
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-400">الحالة:</span>
             <div className="flex gap-2">
@@ -583,11 +582,10 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    statusFilter === status 
-                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' 
-                      : 'bg-slate-50 dark:bg-[#080c13] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 hover:border-slate-900/30 dark:hover:border-white/30'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${statusFilter === status
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
+                    : 'bg-slate-50 dark:bg-[#080c13] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 hover:border-slate-900/30 dark:hover:border-white/30'
+                    }`}
                 >
                   {status}
                 </button>
@@ -605,14 +603,14 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
               {error}
             </div>
           )}
-          
+
           <div className="overflow-x-auto">
             <table className="w-full text-start border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
                   <th className="px-6 py-4 w-10">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={selectedItems.length === filteredParts.length && filteredParts.length > 0}
                       onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#080c13] text-teal-500 focus:ring-teal-500/50 focus:ring-offset-0"
@@ -671,8 +669,8 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
                     return (
                       <tr key={part.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
                         <td className="px-6 py-4">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={selectedItems.includes(part.id)}
                             onChange={() => toggleSelectItem(part.id)}
                             className="w-4 h-4 rounded border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#080c13] text-teal-500 focus:ring-teal-500/50 focus:ring-offset-0 transition-all"
@@ -723,32 +721,32 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-end">
                           <div className="flex items-center justify-end gap-2">
-                            <button 
+                            <button
                               onClick={() => openViewModal(part)}
                               className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => openEditModal(part)}
                               className="p-2 text-slate-400 hover:text-teal-400 hover:bg-teal-500/10 rounded-lg transition-all"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => setTransferPart(part)}
                               className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"
                             >
                               <ArrowRightLeft className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => { setSelectedPart(part); setIsBarcodeModalOpen(true); }}
                               className="p-2 text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all"
                               title="طباعة باركود"
                             >
                               <Printer className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => openDeleteModal(part)}
                               className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                             >
@@ -779,7 +777,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
             paginatedParts.map((part) => {
               const statusInfo = getStatusInfo(part.quantity);
               return (
-                <motion.div 
+                <motion.div
                   layout
                   key={part.id}
                   className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group"
@@ -795,23 +793,23 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
                       <button onClick={() => openDeleteModal(part)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div>
                       <h4 className="font-bold text-slate-900 dark:text-white line-clamp-1">{part.name}</h4>
                       <p className="text-xs text-slate-500 font-mono mt-0.5">{part.sku || 'بدون SKU'}</p>
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase">{part.category}</span>
                         {resolvedWarehouseId === 'ALL' && (
-                           <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-500 text-[10px] font-bold truncate max-w-[80px]">{part.branches?.name || 'الافتراضي'}</span>
+                          <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-500 text-[10px] font-bold truncate max-w-[80px]">{part.branches?.name || 'الافتراضي'}</span>
                         )}
                       </div>
                       <span className={`px-2 py-0.5 rounded-md border text-[10px] font-bold ${statusInfo.color}`}>{statusInfo.label}</span>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100 dark:border-white/5">
                       <div>
                         <p className="text-[10px] text-slate-400 mb-0.5">سعر البيع</p>
@@ -830,238 +828,239 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
         </div>
       )}
 
-        {/* Pagination */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-white/5 border-t border-slate-200 dark:border-white/5 flex items-center justify-between">
-          <div className="text-sm text-slate-500">
-            عرض <span className="font-medium text-slate-900 dark:text-white">1</span> إلى <span className="font-medium text-slate-900 dark:text-white">{filteredParts.length}</span> من <span className="font-medium text-slate-900 dark:text-white">{filteredParts.length}</span> قطعة
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:bg-white dark:hover:bg-white/5 disabled:opacity-50" disabled>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <button className="w-8 h-8 rounded-lg bg-teal-500 text-slate-900 dark:text-white text-sm font-bold">1</button>
-            <button className="p-2 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:bg-white dark:hover:bg-white/5 disabled:opacity-50" disabled>
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
+      {/* Pagination */}
+      <div className="px-6 py-4 bg-slate-50 dark:bg-white/5 border-t border-slate-200 dark:border-white/5 flex items-center justify-between">
+        <div className="text-sm text-slate-500">
+          عرض <span className="font-medium text-slate-900 dark:text-white">1</span> إلى <span className="font-medium text-slate-900 dark:text-white">{filteredParts.length}</span> من <span className="font-medium text-slate-900 dark:text-white">{filteredParts.length}</span> قطعة
         </div>
+        <div className="flex items-center gap-2">
+          <button className="p-2 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:bg-white dark:hover:bg-white/5 disabled:opacity-50" disabled>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <button className="w-8 h-8 rounded-lg bg-teal-500 text-slate-900 dark:text-white text-sm font-bold">1</button>
+          <button className="p-2 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:bg-white dark:hover:bg-white/5 disabled:opacity-50" disabled>
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
 
-      <AddSparePartModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
-        onSuccess={resolveAndFetch} 
+      <AddSparePartModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={resolveAndFetch}
         warehouseId={resolvedWarehouseId}
       />
 
-      <AddMultipleSparePartsModal 
-        isOpen={isAddMultipleModalOpen} 
-        onClose={() => setIsAddMultipleModalOpen(false)} 
-        onSuccess={resolveAndFetch} 
+      <AddMultipleSparePartsModal
+        isOpen={isAddMultipleModalOpen}
+        onClose={() => setIsAddMultipleModalOpen(false)}
+        onSuccess={resolveAndFetch}
         warehouseId={resolvedWarehouseId}
       />
 
       {/* Add/Edit Part Modal */}
       <AnimatePresence mode="wait">
         {(isEditModalOpen) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 h-[100dvh] bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-3xl w-full max-w-xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl"
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl w-full max-w-xl flex flex-col max-h-[90dvh] sm:max-h-[85dvh] overflow-hidden shadow-2xl"
             >
               {/* Modal Header */}
-              <div className="shrink-0 px-8 py-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${isEditModalOpen ? 'bg-blue-500/10 text-blue-400' : 'bg-teal-500/10 text-teal-400'} rounded-xl flex items-center justify-center`}>
-                    <Edit2 className="w-6 h-6" />
+              <div className="shrink-0 px-4 sm:px-6 md:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 ${isEditModalOpen ? 'bg-blue-500/10 text-blue-400' : 'bg-teal-500/10 text-teal-400'} rounded-xl flex items-center justify-center`}>
+                    <Edit2 className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white truncate">
                     تعديل القطعة
                   </h3>
                 </div>
-                <button 
+                <button
                   onClick={() => {
+                    setIsAddModalOpen(false);
                     setIsEditModalOpen(false);
                     setSelectedPart(null);
                     resetForm();
                   }}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all shrink-0"
                 >
-                  <MoreVertical className="w-5 h-5 rotate-90" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <form onSubmit={handleEditPart} className="flex flex-col flex-1 overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Name */}
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1 flex items-center gap-1">
-                      اسم القطعة <span className="text-red-500">*</span>
-                    </label>
-                    <input 
-                      required
-                      type="text"
-                      placeholder="أدخل اسم القطعة بالتفصيل..."
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
-                    />
-                  </div>
-
-                  {/* Category & SKU */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">الفئة</label>
-                    <select 
-                      value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors appearance-none"
-                    >
-                      <option value="">اختر الفئة...</option>
-                      {uniqueCategories.filter(c => c !== 'الكل').map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">SKU</label>
-                    <input 
-                      type="text"
-                      placeholder="رمز الصنف..."
-                      value={formData.sku}
-                      onChange={(e) => setFormData({...formData, sku: e.target.value})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
-                    />
-                  </div>
-
-                  {/* Barcode Section */}
-                  <div className="md:col-span-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                        <Package className="w-4 h-4" /> الباركود
+              <form onSubmit={handleEditPart} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 md:p-8 custom-scrollbar">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    {/* Name */}
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1 flex items-center gap-1">
+                        اسم القطعة <span className="text-red-500">*</span>
                       </label>
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input 
-                            type="radio" 
-                            name="barcode_type" 
-                            checked={formData.barcode_type === 'auto'}
-                            onChange={() => setFormData({...formData, barcode_type: 'auto'})}
-                            className="w-4 h-4 text-teal-500 bg-slate-100 border-slate-300 focus:ring-teal-500" 
-                          />
-                          <span className="text-xs text-slate-600 dark:text-slate-300">تلقائي</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input 
-                            type="radio" 
-                            name="barcode_type" 
-                            checked={formData.barcode_type === 'manual'}
-                            onChange={() => setFormData({...formData, barcode_type: 'manual'})}
-                            className="w-4 h-4 text-teal-500 bg-slate-100 border-slate-300 focus:ring-teal-500" 
-                          />
-                          <span className="text-xs text-slate-600 dark:text-slate-300">يدوي/سكان</span>
-                        </label>
-                      </div>
-                    </div>
-                    {formData.barcode_type === 'manual' && (
-                      <input 
+                      <input
+                        required
                         type="text"
-                        placeholder="أدخل الباركود أو استخدم الماسح..."
-                        value={formData.barcode}
-                        onChange={(e) => setFormData({...formData, barcode: e.target.value})}
-                        className="w-full bg-white dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                        placeholder="أدخل اسم القطعة بالتفصيل..."
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
                       />
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Prices */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">سعر التكلفة (ج.م) <span className="text-red-500">*</span></label>
-                    <input 
-                      required
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.cost_price}
-                      onChange={(e) => setFormData({...formData, cost_price: parseFloat(e.target.value)})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">سعر البيع قطاعي (ج.م) <span className="text-red-500">*</span></label>
-                    <input 
-                      required
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.sell_price}
-                      onChange={(e) => setFormData({...formData, sell_price: parseFloat(e.target.value)})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
-                    />
-                  </div>
-                  
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">سعر البيع جملة (ج.م) (اختياري)</label>
-                    <input 
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.wholesale_price ?? ''}
-                      onChange={(e) => setFormData({...formData, wholesale_price: e.target.value})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">سعر البيع نصف جملة (ج.م) (اختياري)</label>
-                    <input 
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.half_wholesale_price ?? ''}
-                      onChange={(e) => setFormData({...formData, half_wholesale_price: e.target.value})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
-                    />
-                  </div>
+                    {/* Category & SKU */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">الفئة</label>
+                      <select
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors appearance-none"
+                      >
+                        <option value="">اختر الفئة...</option>
+                        {uniqueCategories.filter(c => c !== 'الكل').map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">SKU</label>
+                      <input
+                        type="text"
+                        placeholder="رمز الصنف..."
+                        value={formData.sku}
+                        onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                      />
+                    </div>
 
-                  {/* Quantities */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">الكمية</label>
-                    <input 
-                      type="number"
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value)})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">الحد الأدنى للمخزون</label>
-                    <input 
-                      type="number"
-                      value={formData.min_quantity}
-                      onChange={(e) => setFormData({...formData, min_quantity: parseInt(e.target.value)})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
-                    />
-                  </div>
+                    {/* Barcode Section */}
+                    <div className="sm:col-span-2 p-3 sm:p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 space-y-3 sm:space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                          <Package className="w-4 h-4" /> الباركود
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="barcode_type"
+                              checked={formData.barcode_type === 'auto'}
+                              onChange={() => setFormData({ ...formData, barcode_type: 'auto' })}
+                              className="w-4 h-4 text-teal-500 bg-slate-100 border-slate-300 focus:ring-teal-500"
+                            />
+                            <span className="text-xs text-slate-600 dark:text-slate-300">تلقائي</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="barcode_type"
+                              checked={formData.barcode_type === 'manual'}
+                              onChange={() => setFormData({ ...formData, barcode_type: 'manual' })}
+                              className="w-4 h-4 text-teal-500 bg-slate-100 border-slate-300 focus:ring-teal-500"
+                            />
+                            <span className="text-xs text-slate-600 dark:text-slate-300">يدوي/سكان</span>
+                          </label>
+                        </div>
+                      </div>
+                      {formData.barcode_type === 'manual' && (
+                        <input
+                          type="text"
+                          placeholder="أدخل الباركود أو استخدم الماسح..."
+                          value={formData.barcode}
+                          onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                          className="w-full bg-white dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                        />
+                      )}
+                    </div>
 
-                  {/* Notes */}
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">ملاحظات</label>
-                    <textarea 
-                      rows={3}
-                      placeholder="ملاحظات إضافية..."
-                      value={formData.notes}
-                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors resize-none"
-                    />
+                    {/* Prices */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">سعر التكلفة (ج.م) <span className="text-red-500">*</span></label>
+                      <input
+                        required
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.cost_price}
+                        onChange={(e) => setFormData({ ...formData, cost_price: parseFloat(e.target.value) })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">سعر البيع قطاعي (ج.م) <span className="text-red-500">*</span></label>
+                      <input
+                        required
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.sell_price}
+                        onChange={(e) => setFormData({ ...formData, sell_price: parseFloat(e.target.value) })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">سعر البيع جملة (ج.م) (اختياري)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.wholesale_price ?? ''}
+                        onChange={(e) => setFormData({ ...formData, wholesale_price: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">سعر البيع نصف جملة (ج.م) (اختياري)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.half_wholesale_price ?? ''}
+                        onChange={(e) => setFormData({ ...formData, half_wholesale_price: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                      />
+                    </div>
+
+                    {/* Quantities */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">الكمية</label>
+                      <input
+                        type="number"
+                        value={formData.quantity}
+                        onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">الحد الأدنى للمخزون</label>
+                      <input
+                        type="number"
+                        value={formData.min_quantity}
+                        onChange={(e) => setFormData({ ...formData, min_quantity: parseInt(e.target.value) })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors"
+                      />
+                    </div>
+
+                    {/* Notes */}
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 ms-1">ملاحظات</label>
+                      <textarea
+                        rows={3}
+                        placeholder="ملاحظات إضافية..."
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-teal-500/50 transition-colors resize-none"
+                      />
+                    </div>
                   </div>
-                </div>
                 </div>
 
                 {/* Modal Footer */}
-                <div className="shrink-0 flex items-center justify-end gap-3 p-6 border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
-                  <button 
+                <div className="shrink-0 flex items-center justify-end gap-3 p-3 sm:p-4 md:p-6 border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                  <button
                     type="button"
                     onClick={() => {
                       setIsAddModalOpen(false);
@@ -1069,14 +1068,14 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
                       setSelectedPart(null);
                       resetForm();
                     }}
-                    className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+                    className="px-4 sm:px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
                   >
                     إلغاء
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     disabled={isSubmitting}
-                    className={`flex items-center gap-2 ${isEditModalOpen ? 'bg-blue-500 hover:bg-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-teal-500 hover:bg-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.3)]'} text-slate-900 dark:text-white px-8 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50`}
+                    className={`flex items-center gap-2 ${isEditModalOpen ? 'bg-blue-500 hover:bg-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-teal-500 hover:bg-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.3)]'} text-slate-900 dark:text-white px-5 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50`}
                   >
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                     {isEditModalOpen ? 'حفظ التغييرات' : 'حفظ القطعة'}
@@ -1091,43 +1090,43 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
       {/* View Details Modal */}
       <AnimatePresence>
         {isViewModalOpen && selectedPart && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 h-[100dvh] bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-3xl w-full max-w-md flex flex-col max-h-[85vh] overflow-hidden shadow-2xl"
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl w-full max-w-sm sm:max-w-md flex flex-col max-h-[85dvh] sm:max-h-[80dvh] overflow-hidden shadow-2xl"
             >
               {/* Modal Header */}
-              <div className="shrink-0 px-8 py-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center">
-                    <FileText className="w-6 h-6" />
+              <div className="shrink-0 px-4 sm:px-6 md:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">تفاصيل القطعة</h3>
+                  <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white truncate">تفاصيل القطعة</h3>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setIsViewModalOpen(false);
                     setSelectedPart(null);
                   }}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all shrink-0"
                 >
-                  <MoreVertical className="w-5 h-5 rotate-90" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-6">
-                <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/5 text-center">
-                  <h4 className="text-xl font-bold text-teal-400 mb-2">{selectedPart.name}</h4>
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
+                <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-white/5 text-center">
+                  <h4 className="text-lg sm:text-xl font-bold text-teal-400 mb-2 truncate">{selectedPart.name}</h4>
                   <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
                     <span>باركود:</span>
                     <span className="font-mono text-slate-700 dark:text-slate-200">{selectedPart.barcode || '--'}</span>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-white/5">
                     <span className="text-sm text-slate-500">الفئة</span>
                     <span className="text-sm font-bold text-slate-900 dark:text-white">{selectedPart.category}</span>
@@ -1175,43 +1174,43 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
                 </div>
 
                 {selectedPart.notes && (
-                  <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
+                  <div className="p-3 sm:p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
                     <div className="text-xs font-bold text-slate-500 mb-2">ملاحظات:</div>
                     <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{selectedPart.notes}</p>
                   </div>
                 )}
 
               </div>
-              
+
               {/* Modal Footer */}
-              <div className="shrink-0 flex items-center justify-between gap-3 p-6 border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
-                <div className="flex items-center gap-3 w-full">
-                  <button 
+              <div className="shrink-0 p-3 sm:p-4 md:p-6 border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  <button
                     onClick={() => {
                       setIsViewModalOpen(false);
                       openEditModal(selectedPart);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-400 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                    className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 bg-blue-500 hover:bg-blue-400 text-slate-900 dark:text-white py-2.5 rounded-xl text-[11px] sm:text-sm font-bold transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                   >
                     <Edit2 className="w-4 h-4" />
                     تعديل
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsViewModalOpen(false);
                       setIsBarcodeModalOpen(true);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-bold transition-all"
+                    className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white py-2.5 rounded-xl text-[11px] sm:text-sm font-bold transition-all"
                   >
                     <Printer className="w-4 h-4" />
-                    طباعة الباركود
+                    <span className="truncate">باركود</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsViewModalOpen(false);
                       setSelectedPart(null);
                     }}
-                    className="px-6 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                    className="bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 py-2.5 rounded-xl text-[11px] sm:text-sm font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
                   >
                     إغلاق
                   </button>
@@ -1225,71 +1224,71 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {isDeleteModalOpen && selectedPart && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 h-[100dvh] bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl w-full max-w-sm sm:max-w-md max-h-[85dvh] flex flex-col overflow-hidden shadow-2xl"
             >
               {/* Modal Header */}
-              <div className="px-8 py-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-500/10 text-red-400 rounded-xl flex items-center justify-center">
-                    <AlertTriangle className="w-6 h-6" />
+              <div className="shrink-0 px-4 sm:px-6 md:px-8 py-4 sm:py-5 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-red-500/10 text-red-400 rounded-xl flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">تأكيد الحذف</h3>
+                  <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white truncate">تأكيد الحذف</h3>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setIsDeleteModalOpen(false);
                     setSelectedPart(null);
                   }}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all shrink-0"
                 >
-                  <MoreVertical className="w-5 h-5 rotate-90" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="p-8 text-center space-y-6">
-                <div className="w-20 h-20 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Trash className="w-10 h-10" />
-                </div>
-                
-                <div>
-                  <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">هل أنت متأكد من حذف القطعة؟</h4>
-                  <p className="text-red-400 font-bold text-xl mb-2">{selectedPart.name}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">هذا الإجراء لا يمكن التراجع عنه!</p>
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 text-center space-y-4 sm:space-y-6">
+                <div className="w-14 h-14 sm:w-20 sm:h-20 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto">
+                  <Trash className="w-7 h-7 sm:w-10 sm:h-10" />
                 </div>
 
-                {/* Modal Footer */}
-                <div className="flex items-center gap-3 pt-4 border-t border-slate-200 dark:border-white/5">
-                  <button 
-                    onClick={() => {
-                      setIsDeleteModalOpen(false);
-                      setSelectedPart(null);
-                    }}
-                    className="flex-1 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 py-3 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                  >
-                    إلغاء
-                  </button>
-                  <button 
-                    onClick={handleDeletePart}
-                    disabled={isSubmitting}
-                    className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-400 text-white py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] disabled:opacity-50"
-                  >
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                    حذف نهائي
-                  </button>
+                <div>
+                  <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-2">هل أنت متأكد من حذف القطعة؟</h4>
+                  <p className="text-red-400 font-bold text-base sm:text-xl mb-2 truncate">{selectedPart.name}</p>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">هذا الإجراء لا يمكن التراجع عنه!</p>
                 </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="shrink-0 flex items-center gap-3 p-4 sm:p-6 border-t border-slate-200 dark:border-white/5">
+                <button
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setSelectedPart(null);
+                  }}
+                  className="flex-1 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 py-2.5 sm:py-3 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleDeletePart}
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-400 text-white py-2.5 sm:py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  حذف نهائي
+                </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      <ImportSparePartsModal 
+      <ImportSparePartsModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onSuccess={() => {
@@ -1299,7 +1298,7 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
         warehouseId={resolvedWarehouseId}
       />
 
-      <TransferItemModal 
+      <TransferItemModal
         isOpen={!!transferPart}
         onClose={() => setTransferPart(null)}
         onSuccess={() => {
@@ -1310,10 +1309,10 @@ export default function SpareParts({ warehouse }: { warehouse?: any }) {
         itemType="spare_parts"
         sourceWarehouse={warehouse || { id: resolvedWarehouseId, name: 'مخزن قطع الغيار الافتراضي', type: 'spare_parts' }}
       />
-      
-      <PrintBarcodeModal 
-        isOpen={isBarcodeModalOpen} 
-        onClose={() => { setIsBarcodeModalOpen(false); setSelectedPart(null); }} 
+
+      <PrintBarcodeModal
+        isOpen={isBarcodeModalOpen}
+        onClose={() => { setIsBarcodeModalOpen(false); setSelectedPart(null); }}
         autoSelectItem={selectedPart ? { item: selectedPart, category: 'spare_part' } : undefined}
       />
 

@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   createPortal
@@ -81,6 +81,7 @@ interface InvoiceItem {
 export default function POS() {
   const { currentBranch, isOwner, branches, currentBranchId } = useBranch();
   const { settings, playSound } = useSettings();
+  const [activeMobileTab, setActiveMobileTab] = useState<'products' | 'cart'>('products');
   const [activeTab, setActiveTab] = useState<'devices' | 'accessories' | 'spare_parts' | 'transfers'>('devices');
   const [pricingType, setPricingType] = useState<'retail' | 'wholesale' | 'half_wholesale'>('retail');
   const [searchTerm, setSearchTerm] = useState('');
@@ -200,24 +201,24 @@ export default function POS() {
   }, []);
 
   const headerButtons = (
-    <div className="flex gap-3 pe-4">
+    <div className="flex gap-2 md:gap-3 pe-4 overflow-x-auto custom-scrollbar pb-2 max-w-[calc(100vw-70px)] md:max-w-none">
       <button
         onClick={() => setIsPurchaseDeviceModalOpen(true)}
-        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+        className="shrink-0 px-3 py-2 md:px-5 md:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 md:gap-2 shadow-lg shadow-emerald-500/20"
       >
-        شراء جهاز <Download className="w-5 h-5 bg-white/20 p-1 rounded-md" />
+        شراء جهاز <Download className="w-4 h-4 md:w-5 md:h-5 bg-white/20 p-0.5 md:p-1 rounded-md" />
       </button>
       <button
         onClick={() => setIsReturnModalOpen(true)}
-        className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-orange-500/20"
+        className="shrink-0 px-3 py-2 md:px-5 md:py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 md:gap-2 shadow-lg shadow-orange-500/20"
       >
-        مرتجع <RotateCcw className="w-5 h-5 bg-white/20 p-1 rounded-md" />
+        مرتجع <RotateCcw className="w-4 h-4 md:w-5 md:h-5 bg-white/20 p-0.5 md:p-1 rounded-md" />
       </button>
       <button
         onClick={() => setIsReceiveModalOpen(true)}
-        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+        className="shrink-0 px-3 py-2 md:px-5 md:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 md:gap-2 shadow-lg shadow-emerald-500/20"
       >
-        استلام من عميل <DollarSign className="w-5 h-5 bg-white/20 p-1 rounded-md text-amber-200" />
+        استلام من عميل <DollarSign className="w-4 h-4 md:w-5 md:h-5 bg-white/20 p-0.5 md:p-1 rounded-md text-amber-200" />
       </button>
       <button
         onClick={() => {
@@ -227,15 +228,15 @@ export default function POS() {
             alert('لا توجد فاتورة سابقة لطباعتها، قم بإنهاء عملية بيع أولاً');
           }
         }}
-        className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
+        className="shrink-0 px-3 py-2 md:px-5 md:py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 md:gap-2 shadow-lg shadow-blue-500/20"
       >
-        طباعة الفاتورة <Printer className="w-5 h-5 bg-white/20 p-1 rounded-md text-amber-200" />
+        طباعة الفاتورة <Printer className="w-4 h-4 md:w-5 md:h-5 bg-white/20 p-0.5 md:p-1 rounded-md text-amber-200" />
       </button>
       <button
         onClick={() => setIsBarcodeModalOpen(true)}
-        className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+        className="shrink-0 px-3 py-2 md:px-5 md:py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 md:gap-2 shadow-lg shadow-indigo-500/20"
       >
-        طباعة باركود <Tag className="w-5 h-5 bg-white/20 p-1 rounded-md text-amber-200" />
+        طباعة باركود <Tag className="w-4 h-4 md:w-5 md:h-5 bg-white/20 p-0.5 md:p-1 rounded-md text-amber-200" />
       </button>
     </div>
   );
@@ -2347,9 +2348,41 @@ export default function POS() {
 
   return (
     <>
-      <div className={`flex flex-col lg:flex-row gap-4 lg:gap-6 h-[calc(100vh-112px)] font-sans overflow-hidden`} dir="rtl">
-        {/* User Requested: Left Side (in RTL): Cart & Checkout. On Mobile, it stays at the bottom. */}
-        <div className="w-full lg:w-[420px] 2xl:w-[480px] flex flex-col gap-4 shrink-0 h-full order-2">
+      <div className={`flex flex-col gap-4 lg:gap-6 h-[calc(100vh-112px)] font-sans overflow-hidden`} dir="rtl">
+        {/* Mobile Tabs */}
+        <div className="flex lg:hidden bg-slate-200/50 dark:bg-[#11151c] p-1.5 rounded-xl shrink-0 mx-4 mt-4 lg:m-0">
+          <button
+            onClick={() => setActiveMobileTab('products')}
+            className={`flex-1 py-2.5 text-sm font-bold rounded-lg flex items-center justify-center gap-2 transition-all ${
+              activeMobileTab === 'products'
+                ? 'bg-white dark:bg-white/10 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            المنتجات
+          </button>
+          <button
+            onClick={() => setActiveMobileTab('cart')}
+            className={`flex-1 py-2.5 text-sm font-bold rounded-lg flex items-center justify-center gap-2 transition-all ${
+              activeMobileTab === 'cart'
+                ? 'bg-white dark:bg-white/10 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            سلة المشتريات
+            {cart.length > 0 && (
+              <span className="w-5 h-5 bg-blue-500 text-white text-[10px] rounded-full flex items-center justify-center">
+                {cart.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 overflow-hidden px-4 lg:px-0 pb-4 lg:pb-0">
+          {/* User Requested: Left Side (in RTL): Cart & Checkout. On Mobile, it stays at the bottom. */}
+          <div className={`w-full lg:w-[420px] 2xl:w-[480px] flex-col gap-4 shrink-0 h-full order-2 ${activeMobileTab === 'cart' ? 'flex' : 'hidden lg:flex'}`}>
           <div className="bg-white dark:bg-[#11151c] rounded-2xl flex flex-col h-full shadow-sm border border-slate-200/60 dark:border-white/5 overflow-hidden">
             {/* Cart Header */}
             <div className="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-white/2">
@@ -4120,7 +4153,7 @@ export default function POS() {
         </AnimatePresence>
 
         {/* Right Column (in RTL): Product Selection. On Mobile, it stays on top. */}
-        <div className="flex-1 flex flex-col gap-6 overflow-hidden order-1">
+        <div className={`flex-1 flex-col gap-6 overflow-hidden order-1 ${activeMobileTab === 'products' ? 'flex' : 'hidden lg:flex'}`}>
           {/* Top Navigation & Quick Stats */}
           <div className="flex flex-wrap items-center justify-between border-b border-slate-200 dark:border-white/5 pb-4 gap-4">
             <div className="flex flex-wrap items-center gap-4">
@@ -4982,6 +5015,7 @@ export default function POS() {
           onClose={() => setIsShiftModalOpen(false)}
           onShiftUpdate={fetchWalletsAndShift}
         />
+        </div>
       </div>
 
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>

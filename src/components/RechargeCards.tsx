@@ -737,7 +737,7 @@ export default function RechargeCards() {
                         </button>)}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                       <div className={`p-3 rounded-xl border ${machine.balance <= machine.lowBalanceThreshold ? 'border-red-200 dark:border-red-500/20 bg-white/50 dark:bg-white/5' : 'bg-slate-50 dark:bg-[#1a1f26]/50 border-slate-100 dark:border-white/5'}`}>
                         <p className={`text-xs mb-1 ${machine.balance <= machine.lowBalanceThreshold ? 'text-red-600 dark:text-red-400 font-medium' : 'text-slate-500'}`}>الرصيد</p>
                         <p className={`font-bold font-mono ${machine.balance <= machine.lowBalanceThreshold ? 'text-red-700 dark:text-red-300' : 'text-slate-700 dark:text-slate-300'}`}>{machine.balance.toFixed(2)} ج</p>
@@ -869,7 +869,7 @@ export default function RechargeCards() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-2 p-4 bg-slate-50 dark:bg-[#1a1f26]/50 rounded-2xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 p-4 bg-slate-50 dark:bg-[#1a1f26]/50 rounded-2xl">
                   <div>
                     <span className="block text-xs font-medium text-slate-500 mb-1">سعر التكلفة</span>
                     <span className="text-base font-bold font-mono text-slate-700 dark:text-slate-300">{card.costPrice.toFixed(2)} ج</span>
@@ -1263,7 +1263,7 @@ export default function RechargeCards() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       سعر التكلفة
@@ -1408,7 +1408,7 @@ export default function RechargeCards() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       تكلفة العملية عليك
@@ -1869,7 +1869,7 @@ export default function RechargeCards() {
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     نوع التسليم
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setHandoverType('full')}

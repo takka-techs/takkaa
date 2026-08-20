@@ -58,7 +58,7 @@ export default function ViewAccessoryModal({ isOpen, onClose, accessory }: ViewA
   const InfoCard = ({ label, value, icon: Icon, fullWidth = false, valueColor = "text-slate-900 dark:text-white" }: any) => (
     <motion.div 
       variants={itemVariants}
-      className={`bg-slate-50 dark:bg-[#080c13]/50 border border-slate-200 dark:border-white/5 rounded-2xl p-3.5 flex items-center gap-4 hover:bg-slate-100 dark:bg-white/[0.04] transition-colors group ${fullWidth ? 'md:col-span-2' : ''}`}
+      className={`bg-slate-50 dark:bg-[#080c13]/50 border border-slate-200 dark:border-white/5 rounded-2xl p-3.5 flex items-center gap-4 hover:bg-slate-100 dark:hover:bg-white/10 dark:bg-white/[0.04] transition-colors group ${fullWidth ? 'md:col-span-2' : ''}`}
     >
       <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-cyan-500/10 group-hover:text-cyan-400 transition-all duration-300">
         <Icon className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-cyan-400 transition-colors" />
@@ -88,7 +88,7 @@ export default function ViewAccessoryModal({ isOpen, onClose, accessory }: ViewA
           initial="hidden" 
           animate="visible" 
           exit="exit"
-          className="relative w-full max-w-xl bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-xl my-4 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] md:max-h-[80vh]"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-white/5 bg-gradient-to-b from-white/[0.04] to-transparent shrink-0 relative overflow-hidden">
@@ -104,14 +104,14 @@ export default function ViewAccessoryModal({ isOpen, onClose, accessory }: ViewA
             </div>
             <button 
               onClick={onClose}
-              className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 rounded-xl transition-colors relative z-10"
+              className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 dark:bg-white/5 rounded-xl transition-colors relative z-10"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="p-6 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <InfoCard label="اسم الصنف" value={accessory.name || '-'} icon={Tag} fullWidth />
               <InfoCard label="الماركة / النوع" value={accessory.brand || '-'} icon={Building2} />
