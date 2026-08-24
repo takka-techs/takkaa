@@ -21,7 +21,7 @@
 //           className="absolute inset-0 bg-slate-50 dark:bg-[#080c13]/80 backdrop-blur-sm"
 //           onClick={onClose}
 //         />
-        
+
 //         <motion.div 
 //           initial={{ opacity: 0, scale: 0.95, y: 20 }} 
 //           animate={{ opacity: 1, scale: 1, y: 0 }} 
@@ -46,7 +46,7 @@
 
 //           {/* Body */}
 //           <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-            
+
 //             {/* Main Info Card */}
 //             <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-2xl p-5">
 //               <div className="flex items-center gap-2 mb-4">
@@ -206,17 +206,17 @@ export default function ViewDeviceModal({ isOpen, onClose, device }: ViewDeviceM
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:pr-72" dir="rtl">
-        <motion.div 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          exit={{ opacity: 0 }} 
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           className="absolute inset-0 bg-slate-50 dark:bg-[#080c13]/80 backdrop-blur-sm"
           onClick={onClose}
         />
-        
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }} 
-          animate={{ opacity: 1, scale: 1, y: 0 }} 
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="relative w-full max-w-2xl bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         >
@@ -228,7 +228,7 @@ export default function ViewDeviceModal({ isOpen, onClose, device }: ViewDeviceM
               </div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">تفاصيل الجهاز</h2>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 dark:bg-white/5 rounded-xl transition-colors"
             >
@@ -238,7 +238,7 @@ export default function ViewDeviceModal({ isOpen, onClose, device }: ViewDeviceM
 
           {/* Body */}
           <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-            
+
             {/* Main Info Card */}
             <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-4">
@@ -303,6 +303,18 @@ export default function ViewDeviceModal({ isOpen, onClose, device }: ViewDeviceM
                   <span className="text-sm font-bold text-slate-900 dark:text-white">{device.condition || '-'}</span>
                 </div>
                 <div className="flex justify-between items-center bg-slate-50 dark:bg-[#080c13] rounded-xl p-3 border border-slate-200 dark:border-white/5">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">الرام:</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{device.ram || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center bg-slate-50 dark:bg-[#080c13] rounded-xl p-3 border border-slate-200 dark:border-white/5">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">حالة التفعيل:</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{device.activation_status || 'غير محدد'}</span>
+                </div>
+                <div className="flex justify-between items-center bg-slate-50 dark:bg-[#080c13] rounded-xl p-3 border border-slate-200 dark:border-white/5">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">نوع الشريحة:</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{device.sim_type || 'غير محدد'}</span>
+                </div>
+                <div className="flex justify-between items-center bg-slate-50 dark:bg-[#080c13] rounded-xl p-3 border border-slate-200 dark:border-white/5">
                   <span className="text-xs text-slate-500 dark:text-slate-400">صحة البطارية:</span>
                   <div className="flex items-center gap-2">
                     <Battery className="w-4 h-4 text-emerald-400" />
@@ -346,7 +358,7 @@ export default function ViewDeviceModal({ isOpen, onClose, device }: ViewDeviceM
                 <div className="flex justify-between items-center bg-slate-50 dark:bg-[#080c13] rounded-xl p-3 border border-slate-200 dark:border-white/5">
                   <span className="text-xs text-slate-500 dark:text-slate-400">الهامش:</span>
                   <span className="text-sm font-bold text-teal-400">
-                    {((device.selling_price || 0) - (device.cost_price || 0)).toLocaleString()} جنيه 
+                    {((device.selling_price || 0) - (device.cost_price || 0)).toLocaleString()} جنيه
                     ({device.cost_price ? (((device.selling_price || 0) - (device.cost_price || 0)) / device.cost_price * 100).toFixed(1) : 0}%)
                   </span>
                 </div>
@@ -383,7 +395,7 @@ export default function ViewDeviceModal({ isOpen, onClose, device }: ViewDeviceM
 
           {/* Footer */}
           <div className="p-6 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] shrink-0 flex items-center justify-center">
-            <button 
+            <button
               className="bg-purple-600 hover:bg-purple-500 text-slate-900 dark:text-white px-8 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_25px_rgba(147,51,234,0.4)] flex items-center gap-2"
             >
               <Printer className="w-4 h-4" /> طباعة باركود
@@ -394,3 +406,5 @@ export default function ViewDeviceModal({ isOpen, onClose, device }: ViewDeviceM
     </AnimatePresence>
   );
 }
+
+

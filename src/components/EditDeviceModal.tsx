@@ -452,6 +452,8 @@ export default function EditDeviceModal({ isOpen, onClose, onSuccess, device }: 
     ram: '',
     condition: 'جديد',
     has_box: true,
+    activation_status: 'غير محدد',
+    sim_type: 'غير محدد',
     source: '',
     imei1: '',
     imei2: '',
@@ -474,6 +476,8 @@ export default function EditDeviceModal({ isOpen, onClose, onSuccess, device }: 
         ram: device.ram || '',
         condition: device.condition || 'جديد',
         has_box: device.has_box,
+        activation_status: device.activation_status || 'غير محدد',
+        sim_type: device.sim_type || 'غير محدد',
         source: device.source || '',
         imei1: device.imei1 || '',
         imei2: device.imei2 || '',
@@ -613,6 +617,7 @@ export default function EditDeviceModal({ isOpen, onClose, onSuccess, device }: 
                     </label>
                     <input 
                       type="text" 
+                      list="companies-list"
                       name="company"
                       value={formData.company}
                       onChange={handleChange}
@@ -712,6 +717,34 @@ export default function EditDeviceModal({ isOpen, onClose, onSuccess, device }: 
                     >
                       <option value="true">بكرتونة</option>
                       <option value="false">بدون كرتونة</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      حالة التفعيل
+                    </label>
+                    <select
+                      name="activation_status" value={formData.activation_status} onChange={handleChange}
+                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500 outline-none transition-all appearance-none"
+                    >
+                      <option value="غير محدد">غير محدد</option>
+                      <option value="أكتف">أكتف</option>
+                      <option value="نو أكتف">نو أكتف</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      نوع الشريحة
+                    </label>
+                    <select
+                      name="sim_type" value={formData.sim_type} onChange={handleChange}
+                      className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500 outline-none transition-all appearance-none"
+                    >
+                      <option value="غير محدد">غير محدد</option>
+                      <option value="Physical SIM">Physical SIM</option>
+                      <option value="eSIM">eSIM</option>
+                      <option value="Dual SIM">Dual SIM</option>
+                      <option value="Physical + eSIM">Physical + eSIM</option>
                     </select>
                   </div>
                 </div>
@@ -878,3 +911,4 @@ export default function EditDeviceModal({ isOpen, onClose, onSuccess, device }: 
     </AnimatePresence>
   );
 }
+

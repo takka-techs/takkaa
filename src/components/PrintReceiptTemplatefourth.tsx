@@ -27,6 +27,7 @@ interface PrintReceiptTemplateProps {
   logo?: string;
   paymentMethod?: string;
   installmentInterestCost?: number;
+  date?: string | Date;
 }
 
 const PhoneIcon = () => (
@@ -75,6 +76,7 @@ export const PrintReceiptTemplate = React.forwardRef<
     cashierName,
     paymentMethod,
     installmentInterestCost,
+    date,
   } = props;
 
   const innerRef = useRef<HTMLDivElement>(null);
@@ -122,8 +124,8 @@ export const PrintReceiptTemplate = React.forwardRef<
   const header = currentBranch?.invoice_header || settings?.maintenanceReceiptTopHeader || settings?.invoiceHeader || "مرحباً بكم في ثقة أصل الثقة";
   const footer = currentBranch?.invoice_footer || settings?.maintenanceFooter || settings?.invoiceFooter || "البضاعة المباعة لا ترد ولا تستبدل بعد 14 يوم";
 
-  const currentDate = new Date().toLocaleDateString("en-GB", { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const currentTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const currentDate = (date ? new Date(date) : new Date()).toLocaleDateString("en-GB", { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const currentTime = (date ? new Date(date) : new Date()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
   const dueAmount = Math.max(0, finalAmount - cashReceived);
 
   const formattedInvoiceId = String(invoiceId).includes('-') ? invoiceId : `INV-${invoiceId}`;

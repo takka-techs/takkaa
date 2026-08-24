@@ -73,18 +73,16 @@ export const PrintBarcodeTemplate = React.forwardRef<HTMLDivElement, PrintBarcod
             </div>
           </div>
         ) : (
-          showPrice ? (
-            <div className="flex justify-between items-end w-full font-black border-b border-black/30 pb-0.5 mb-0.5 leading-tight"
-              style={{ fontSize: `calc(${barcodeFontSize} - 1px)` }}>
-              <span>{Number(price).toLocaleString('en-US')} L.E</span>
-              <span>{brand || ''}</span>
-            </div>
-          ) : <div className="h-1" />
+          <div className="flex justify-between items-end w-full font-black border-b border-black/30 pb-0.5 mb-0.5 leading-tight px-2"
+            style={{ fontSize: `calc(${barcodeFontSize} - 1px)` }}>
+            <span>{showPrice ? `${Number(price).toLocaleString('en-US')} L.E` : ''}</span>
+            <span>{settings?.companyName || brand || 'المحل'}</span>
+          </div>
         )}
         <div className="w-full flex items-center justify-center overflow-hidden my-0.5">
           <Barcode
             value={finalBarcode}
-            width={1.7}
+            width={finalBarcode.length > 12 ? 1 : 1.5}
             height={numericHeight > 25 ? 32 : 24}
             fontSize={Math.max(9, parsedBarcodeFontSize - 2)}
             margin={0}

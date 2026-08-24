@@ -130,6 +130,15 @@ export default function AddAccessoryModal(props: AddAccessoryModalProps) {
         'Prefer': 'return=representation'
       };
 
+      if (Number(paidAmount) > 0 && selectedWalletId) {
+        const wallet = wallets.find(w => w.id.toString() === selectedWalletId);
+        if (wallet && Number(wallet.balance) < Number(paidAmount)) {
+          alert('عفواً، رصيد الخزينة لا يكفي لهذه العملية.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       let finalBarcode = formData.barcode;
       if (barcodeMode === 'auto') {
         finalBarcode = Math.floor(1000000000000 + Math.random() * 9000000000000).toString();
@@ -141,9 +150,14 @@ export default function AddAccessoryModal(props: AddAccessoryModalProps) {
       let finalBrand = formData.brand === 'أخرى' ? otherBrand : formData.brand;
       let finalCategory = formData.category === 'أخرى' ? otherCategory.trim() : formData.category;
       let finalSupplier = formData.supplier;
+      let finalSupplierId = null;
+      let finalClientId = null;
+      const totalCost = (Number(formData.cost_price) || 0) * (Number(formData.quantity) || 1) + (Number(formData.tax) || 0) * (Number(formData.quantity) || 1);
+      const paid = Number(paidAmount) || 0;
+      const debtToAdd = totalCost - paid;
 
       if (formData.supplier === 'مورد_جديد' && newSourceName) {
-        await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers`, {
+        const res = await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers`, {
           method: 'POST',
           headers: commonHeaders,
           body: JSON.stringify({
@@ -151,12 +165,17 @@ export default function AddAccessoryModal(props: AddAccessoryModalProps) {
             phone: newSourcePhone || null,
             user_id: userId,
             tenant_id: tenantId,
-            branch_id: targetBranchId
+            branch_id: targetBranchId,
+            initial_balance: debtToAdd
           })
         });
+        if(res.ok) {
+           const newSup = await res.json();
+           if(newSup && newSup.length > 0) finalSupplierId = newSup[0].id;
+        }
         finalSupplier = newSourceName;
       } else if (formData.supplier === 'عميل_جديد' && newSourceName) {
-        await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients`, {
+        const res = await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients`, {
           method: 'POST',
           headers: commonHeaders,
           body: JSON.stringify({
@@ -164,10 +183,53 @@ export default function AddAccessoryModal(props: AddAccessoryModalProps) {
             phone: newSourcePhone || null,
             user_id: userId,
             tenant_id: tenantId,
-            branch_id: targetBranchId
+            branch_id: targetBranchId,
+            initial_balance: -debtToAdd
           })
         });
+        if(res.ok) {
+           const newCli = await res.json();
+           if(newCli && newCli.length > 0) finalClientId = newCli[0].id;
+        }
         finalSupplier = newSourceName;
+      } else if (formData.supplier) {
+        // existing
+        const existingSupplier = suppliers.find(s => s.name === formData.supplier);
+        const existingClient = clients.find(c => c.name === formData.supplier);
+        
+        if (existingSupplier) {
+          finalSupplierId = existingSupplier.id;
+          if (debtToAdd !== 0) {
+            const res = await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers?id=eq.${finalSupplierId}&select=initial_balance`, {
+              headers: { 'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa', 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const currentBal = data[0]?.initial_balance || 0;
+              await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers?id=eq.${finalSupplierId}`, {
+                method: 'PATCH',
+                headers: commonHeaders,
+                body: JSON.stringify({ initial_balance: currentBal + debtToAdd })
+              });
+            }
+          }
+        } else if (existingClient) {
+          finalClientId = existingClient.id;
+          if (debtToAdd !== 0) {
+            const res = await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients?id=eq.${finalClientId}&select=initial_balance`, {
+              headers: { 'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa', 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const currentBal = data[0]?.initial_balance || 0;
+              await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients?id=eq.${finalClientId}`, {
+                method: 'PATCH',
+                headers: commonHeaders,
+                body: JSON.stringify({ initial_balance: currentBal - debtToAdd })
+              });
+            }
+          }
+        }
       }
 
       if (!formWarehouseId && targetBranchId) {
@@ -563,7 +625,7 @@ export default function AddAccessoryModal(props: AddAccessoryModalProps) {
                       onChange={handleChange}
                       className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white focus:border-cyan-500 outline-none transition-colors appearance-none"
                     >
-                      <option value="">بدون مصدر</option>
+                      <option value="">بدون مصدر (بضاعة متوفرة)</option>
                       <option value="مورد_جديد">+ إضافة مورد جديد</option>
                       <option value="عميل_جديد">+ إضافة عميل جديد</option>
                       <optgroup label="الموردين الحاليين">
@@ -600,7 +662,7 @@ export default function AddAccessoryModal(props: AddAccessoryModalProps) {
                     </div>
                   )}
 
-                  {(suppliers.some(s => s.name === formData.supplier) || formData.supplier === 'مورد_جديد') && (
+                  {(suppliers.some(s => s.name === formData.supplier) || clients.some(c => c.name === formData.supplier) || formData.supplier === 'مورد_جديد' || formData.supplier === 'عميل_جديد') && (
                     <div className="bg-slate-100 dark:bg-white/5 p-4 rounded-xl border border-slate-200 dark:border-white/10 space-y-4">
                       <div className="flex justify-between items-center text-sm font-bold">
                         <span className="text-slate-600 dark:text-slate-400">إجمالي المطلوب:</span>

@@ -181,7 +181,8 @@ export default function Customers() {
     clientId: '',
     amount: '',
     walletId: '',
-    notes: ''
+    notes: '',
+    type: 'in'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -371,6 +372,14 @@ export default function Customers() {
       return;
     }
 
+    const selectedWallet = wallets.find(w => w.id.toString() === receiveData.walletId.toString());
+    const amountToProcess = Number(receiveData.amount);
+
+    if (receiveData.type === 'out' && selectedWallet && Number(selectedWallet.balance) < amountToProcess) {
+      alert('عفواً، رصيد الخزينة لا يكفي لهذه العملية.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('access_token');
@@ -386,7 +395,7 @@ export default function Customers() {
       const selectedClient = customers.find(c => c.id.toString() === receiveData.clientId.toString());
       if (!selectedClient) throw new Error('العميل غير موجود');
 
-      const amountToReceive = Number(receiveData.amount);
+      const isReceiving = receiveData.type === 'in'; // true: استلام من العميل (مقبوضات), false: دفع للعميل (مدفوعات)
 
       // 1. Record transaction in treasury_transactions
       await fetch(`${baseUrl}/treasury_transactions`, {
@@ -395,29 +404,42 @@ export default function Customers() {
         body: JSON.stringify({
           wallet_id: parseInt(receiveData.walletId),
           user_id: userId || '0885cf2d-0f6b-4146-b5dd-0bdf3a2b3ad3',
-          type: 'in',
-          amount: amountToReceive,
-          category: 'مقبوضات عملاء',
-          description: `استلام دفعة من العميل: ${selectedClient.name} - ${receiveData.notes || ''}`.trim(),
+          type: isReceiving ? 'in' : 'out',
+          amount: amountToProcess,
+          category: isReceiving ? 'مقبوضات عملاء' : 'مدفوعات عملاء',
+          description: isReceiving 
+            ? `استلام دفعة من العميل: ${selectedClient.name} - ${receiveData.notes || ''}`.trim()
+            : `صرف مبلغ للعميل: ${selectedClient.name} - ${receiveData.notes || ''}`.trim(),
           date: new Date().toISOString()
         })
       });
 
       // 2. Update wallet balance
-      const selectedWallet = wallets.find(w => w.id.toString() === receiveData.walletId.toString());
       if (selectedWallet) {
         await fetch(`${baseUrl}/wallets?id=eq.${receiveData.walletId}`, {
           method: 'PATCH',
           headers,
-          body: JSON.stringify({ balance: Number(selectedWallet.balance) + amountToReceive })
+          body: JSON.stringify({ 
+            balance: isReceiving 
+              ? Number(selectedWallet.balance) + amountToProcess 
+              : Number(selectedWallet.balance) - amountToProcess 
+          })
         });
       }
 
-      // 3. Update shift expected amount and deposits count
+      // 3. Update shift expected amount and deposits/withdrawals count
       if (activeShift) {
-        const patchBody: any = { deposits_count: Number(activeShift.deposits_count || 0) + 1 };
-        if (selectedWallet && selectedWallet.type === 'cash') {
-          patchBody.expected_amount = Number(activeShift.expected_amount || 0) + amountToReceive;
+        const patchBody: any = {};
+        if (isReceiving) {
+            patchBody.deposits_count = Number(activeShift.deposits_count || 0) + 1;
+            if (selectedWallet && selectedWallet.type === 'cash') {
+              patchBody.expected_amount = Number(activeShift.expected_amount || 0) + amountToProcess;
+            }
+        } else {
+            patchBody.withdrawals_count = Number(activeShift.withdrawals_count || 0) + 1;
+            if (selectedWallet && selectedWallet.type === 'cash') {
+              patchBody.expected_amount = Number(activeShift.expected_amount || 0) - amountToProcess;
+            }
         }
         await fetch(`${baseUrl}/shifts?id=eq.${activeShift.id}`, {
           method: 'PATCH',
@@ -426,23 +448,25 @@ export default function Customers() {
         });
       }
 
-      // 4. Update client's balance (decrease their debt)
+      // 4. Update client's balance (decrease their debt if receiving, increase debt if paying them out)
       await fetch(`${baseUrl}/clients?id=eq.${selectedClient.id}`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({
-          initial_balance: Number(selectedClient.initial_balance || 0) - amountToReceive
+          initial_balance: isReceiving 
+            ? Number(selectedClient.initial_balance || 0) - amountToProcess
+            : Number(selectedClient.initial_balance || 0) + amountToProcess
         })
       });
 
-      alert('تم استلام الدفعة بنجاح!');
+      alert(isReceiving ? 'تم استلام الدفعة بنجاح!' : 'تم صرف المبلغ للعميل بنجاح!');
       const receiptIdStr = `REC-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
       handlePrintCashReceipt({
         receiptId: receiptIdStr,
-        type: 'قبض',
+        type: isReceiving ? 'قبض' : 'صرف',
         date: new Date().toISOString(),
         clientName: selectedClient.name,
-        amount: amountToReceive,
+        amount: amountToProcess,
         paymentMethod: wallets.find(w => w.id.toString() === receiveData.walletId)?.name || 'نقدي',
         notes: receiveData.notes,
         cashierName: localStorage.getItem('active_cashier') ? (JSON.parse(localStorage.getItem('active_cashier') || '{}')).name || (JSON.parse(localStorage.getItem('active_cashier') || '{}')).username : localStorage.getItem('admin_active') ? 'المدير' : 'كاشير'
@@ -453,7 +477,8 @@ export default function Customers() {
         clientId: '',
         amount: '',
         walletId: '',
-        notes: ''
+        notes: '',
+        type: 'in'
       });
       fetchWalletsAndShift();
       fetchCustomers();
@@ -923,11 +948,11 @@ export default function Customers() {
                         </button>
                         <button
                           onClick={() => {
-                            setReceiveData({ ...receiveData, clientId: customer.id.toString(), amount: '' });
+                            setReceiveData({ clientId: customer.id.toString(), amount: '', walletId: '', notes: '', type: 'in' });
                             setIsReceiveModalOpen(true);
                           }}
                           className="p-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-lg transition-all border border-amber-500/10"
-                          title="تحصيل من العميل"
+                          title="تحصيل / صرف مبالغ"
                         >
                           <DollarSign className="w-4 h-4" />
                         </button>
@@ -1627,7 +1652,7 @@ export default function Customers() {
                   <X className="w-5 h-5" />
                 </button>
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">تحصيل دفعة</h2>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">{receiveData.type === 'in' ? 'تحصيل دفعة' : 'صرف مبلغ للعميل'}</h2>
                   <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center">
                     <DollarSign className="w-5 h-5 text-amber-500" />
                   </div>
@@ -1636,6 +1661,21 @@ export default function Customers() {
 
               {/* Form Content */}
               <div className="p-8 space-y-6">
+
+                <div className="flex gap-2 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl mb-2">
+                  <button
+                    onClick={() => setReceiveData({ ...receiveData, type: 'in' })}
+                    className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${receiveData.type === 'in' ? 'bg-white dark:bg-[#11151c] text-emerald-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  >
+                    استلام دفعة (تحصيل)
+                  </button>
+                  <button
+                    onClick={() => setReceiveData({ ...receiveData, type: 'out' })}
+                    className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${receiveData.type === 'out' ? 'bg-white dark:bg-[#11151c] text-red-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                  >
+                    صرف مبلغ (إعطاء)
+                  </button>
+                </div>
 
                 <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 p-4 rounded-xl text-sm font-bold flex gap-3 text-start leading-relaxed">
                   <AlertTriangle className="w-5 h-5 shrink-0" />
@@ -1673,7 +1713,7 @@ export default function Customers() {
                 </div>
 
                 <div className="space-y-2 text-end">
-                  <label className="text-sm font-bold text-slate-500">المبلغ المحصّل <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-bold text-slate-500">{receiveData.type === 'in' ? 'المبلغ المحصّل' : 'المبلغ المنصرف'} <span className="text-red-500">*</span></label>
                   <input
                     type="number"
                     value={receiveData.amount}
@@ -1737,9 +1777,9 @@ export default function Customers() {
                 <button
                   onClick={handleReceiveSubmit}
                   disabled={isSubmitting}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-4 font-bold transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  className={`flex-1 text-white rounded-xl py-4 font-bold transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 ${receiveData.type === 'in' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'}`}
                 >
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>تحصيل <DollarSign className="w-5 h-5 bg-white/20 p-0.5 rounded-full" /></>}
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{receiveData.type === 'in' ? 'تحصيل الدفعة' : 'صرف المبلغ'} <DollarSign className="w-5 h-5 bg-white/20 p-0.5 rounded-full" /></>}
                 </button>
               </div>
             </motion.div>

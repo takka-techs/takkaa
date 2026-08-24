@@ -37,6 +37,8 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
     color: '',
     condition: 'جديد',
     has_box: true,
+    activation_status: 'غير محدد',
+    sim_type: 'غير محدد',
     source: '',
     imei1: '',
     imei2: '',
@@ -152,41 +154,68 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
 
       let finalCompany = formData.company === 'أخرى' ? otherCompany : formData.company;
       let finalSource = formData.source;
+      const debtToAdd = (Number(formData.cost_price) || 0) + (Number(formData.tax) || 0) - (Number(paidAmount) || 0);
+      const apiHeaders = {
+        'Content-Type': 'application/json',
+        'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+        'Authorization': `Bearer ${token}`
+      };
 
       if (formData.source === 'مورد_جديد' && newSourceName) {
         await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
-            'Authorization': `Bearer ${token}`
-          },
+          headers: apiHeaders,
           body: JSON.stringify({
             name: newSourceName,
             phone: newSourcePhone || null,
             user_id: userId,
             tenant_id: tenantId,
-            branch_id: targetBranchId
+            branch_id: targetBranchId,
+            initial_balance: debtToAdd
           })
         });
         finalSource = newSourceName;
       } else if (formData.source === 'عميل_جديد' && newSourceName) {
         await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
-            'Authorization': `Bearer ${token}`
-          },
+          headers: apiHeaders,
           body: JSON.stringify({
             name: newSourceName,
             phone: newSourcePhone || null,
             user_id: userId,
             tenant_id: tenantId,
-            branch_id: targetBranchId
+            branch_id: targetBranchId,
+            initial_balance: -debtToAdd
           })
         });
         finalSource = newSourceName;
+      } else if (finalSource) {
+        const existingSupplier = suppliers.find(s => s.name === finalSource);
+        const existingClient = clients.find(c => c.name === finalSource);
+
+        if (existingSupplier && debtToAdd !== 0) {
+          const res = await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers?id=eq.${existingSupplier.id}&select=initial_balance`, { headers: apiHeaders });
+          if (res.ok) {
+            const data = await res.json();
+            const currentBal = data[0]?.initial_balance || 0;
+            await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers?id=eq.${existingSupplier.id}`, {
+              method: 'PATCH',
+              headers: apiHeaders,
+              body: JSON.stringify({ initial_balance: currentBal + debtToAdd })
+            });
+          }
+        } else if (existingClient && debtToAdd !== 0) {
+          const res = await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients?id=eq.${existingClient.id}&select=initial_balance`, { headers: apiHeaders });
+          if (res.ok) {
+            const data = await res.json();
+            const currentBal = data[0]?.initial_balance || 0;
+            await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients?id=eq.${existingClient.id}`, {
+              method: 'PATCH',
+              headers: apiHeaders,
+              body: JSON.stringify({ initial_balance: currentBal - debtToAdd })
+            });
+          }
+        }
       }
 
       if (!formWarehouseId && targetBranchId) {
@@ -222,6 +251,8 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
         color: formData.color,
         condition: formData.condition,
         has_box: formData.has_box.toString() === 'true',
+        activation_status: formData.activation_status,
+        sim_type: formData.sim_type,
         source: finalSource,
         imei1: formData.imei1,
         imei2: formData.imei2 || null,
@@ -261,6 +292,10 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
       }
 
       if (finalSource && Number(paidAmount) > 0 && selectedWalletId) {
+        const isClientSource = clients.some(c => c.name === formData.source) || formData.source === 'عميل_جديد';
+        const payeeType = isClientSource ? 'العميل' : 'المورد';
+        const categoryDesc = isClientSource ? 'شراء جهاز من عميل' : 'سداد دفعة للمورد';
+
         const wallet = wallets.find(w => w.id.toString() === selectedWalletId);
         if (wallet) {
           await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/wallets?id=eq.${selectedWalletId}`, {
@@ -287,8 +322,8 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
             user_id: userId,
             type: 'out',
             amount: Number(paidAmount),
-            category: 'سداد دفعة للمورد',
-            description: `سداد المورد ${finalSource} (جهاز: ${finalCompany} ${formData.model})`,
+            category: categoryDesc,
+            description: `سداد ${payeeType} ${finalSource} (جهاز: ${finalCompany} ${formData.model})`,
             branch_id: targetBranchId,
             tenant_id: tenantId
           })
@@ -453,11 +488,16 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
                     className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-emerald-500 outline-none transition-all appearance-none"
                   >
                     <option value="">-- اختر --</option>
+                    <option value="1GB">1GB</option>
+                    <option value="2GB">2GB</option>
+                    <option value="3GB">3GB</option>
+
                     <option value="4GB">4GB</option>
                     <option value="6GB">6GB</option>
                     <option value="8GB">8GB</option>
                     <option value="12GB">12GB</option>
                     <option value="16GB">16GB</option>
+                    <option value="32GB">32GB</option>
                   </select>
                 </div>
 
@@ -510,16 +550,46 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
                   </select>
                 </div>
 
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                    حالة التفعيل
+                  </label>
+                  <select
+                    name="activation_status" value={formData.activation_status} onChange={handleChange}
+                    className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-emerald-500 outline-none transition-all appearance-none"
+                  >
+                    <option value="غير محدد">غير محدد</option>
+                    <option value="أكتف">أكتف</option>
+                    <option value="نو أكتف">نو أكتف</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+                    نوع الشريحة
+                  </label>
+                  <select
+                    name="sim_type" value={formData.sim_type} onChange={handleChange}
+                    className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-emerald-500 outline-none transition-all appearance-none"
+                  >
+                    <option value="غير محدد">غير محدد</option>
+                    <option value="Physical SIM">Physical SIM</option>
+                    <option value="eSIM">eSIM</option>
+                    <option value="Dual SIM">Dual SIM</option>
+                    <option value="Physical + eSIM">Physical + eSIM</option>
+                  </select>
+                </div>
+
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                       <Building2 className="w-4 h-4 text-red-400" /> المصدر
                     </label>
                     <select
-                      name="source" value={formData.source} onChange={handleChange} required
+                      name="source" value={formData.source} onChange={handleChange}
                       className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-emerald-500 outline-none transition-all appearance-none"
                     >
-                      <option value="">-- اختر نوع المصدر --</option>
+                      <option value="">بدون مصدر (بضاعة متوفرة)</option>
                       <option value="مورد_جديد">+ إضافة مورد جديد</option>
                       <option value="عميل_جديد">+ إضافة عميل جديد</option>
                       <optgroup label="الموردين الحاليين">
@@ -556,7 +626,7 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
                     </div>
                   )}
 
-                  {(suppliers.some(s => s.name === formData.source) || formData.source === 'مورد_جديد') && (
+                  {((suppliers.some(s => s.name === formData.source) || formData.source === 'مورد_جديد') || (clients.some(c => c.name === formData.source) || formData.source === 'عميل_جديد')) && (
                     <div className="bg-slate-100 dark:bg-white/5 p-4 rounded-xl border border-slate-200 dark:border-white/10 space-y-4">
                       <div className="flex justify-between items-center text-sm font-bold">
                         <span className="text-slate-600 dark:text-slate-400">إجمالي المطلوب:</span>
@@ -565,7 +635,9 @@ export default function AddDeviceModal(props: AddDeviceModalProps) {
                         </span>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-600 dark:text-slate-300">المبلغ المدفوع للمورد (اختياري)</label>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                          المبلغ المدفوع {(clients.some(c => c.name === formData.source) || formData.source === 'عميل_جديد') ? 'للعميل' : 'للمورد'} (اختياري)
+                        </label>
                         <input
                           type="number"
                           min="0"

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
-import { 
-  Search, Filter, Plus, FileText, Download, Upload, 
-  Printer, RefreshCw, ArrowRightLeft, Trash2, Edit, 
+import {
+  Search, Filter, Plus, FileText, Download, Upload,
+  Printer, RefreshCw, ArrowRightLeft, Trash2, Edit,
   Eye, DollarSign, Smartphone, Barcode, Archive,
   CheckCircle2, AlertCircle, Clock, Settings, LayoutGrid,
   ChevronDown, RotateCcw, Layers, Loader2, ChevronLeft, ChevronRight
@@ -31,7 +31,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
   const [isAddDeviceModalOpen, setIsAddDeviceModalOpen] = useState(false);
   const [isAddMultipleModalOpen, setIsAddMultipleModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  
+
   // Action Modals state
   const [viewDevice, setViewDevice] = useState<any>(null);
   const [editDevice, setEditDevice] = useState<any>(null);
@@ -75,13 +75,13 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
       if (!targetWarehouseId) {
         const activeBranchId = localStorage.getItem("takka_active_branch_id");
         if (!activeBranchId || activeBranchId === 'ALL') {
-           // Owner viewing All Branches
-           targetWarehouseId = 'ALL';
-           setResolvedWarehouseId('ALL');
+          // Owner viewing All Branches
+          targetWarehouseId = 'ALL';
+          setResolvedWarehouseId('ALL');
         } else {
           // Find default devices warehouse for the branch
           let url = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Warehouses?select=id&type=eq.devices&is_default=eq.true&branch_id=eq.${activeBranchId}`;
-          
+
           let whRes = await fetch(url, {
             headers: {
               'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
@@ -89,24 +89,24 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
             }
           });
           let whData = await whRes.json();
-          
+
           if (!Array.isArray(whData) || whData.length === 0) {
-             let url2 = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Warehouses?select=id&type=eq.devices&branch_id=eq.${activeBranchId}&order=created_at.asc&limit=1`;
-             whRes = await fetch(url2, {
-               headers: {
-                 'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
-                 'Authorization': `Bearer ${token}`
-               }
-             });
-             whData = await whRes.json();
+            let url2 = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Warehouses?select=id&type=eq.devices&branch_id=eq.${activeBranchId}&order=created_at.asc&limit=1`;
+            whRes = await fetch(url2, {
+              headers: {
+                'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            whData = await whRes.json();
           }
 
           if (Array.isArray(whData) && whData.length > 0) {
-             targetWarehouseId = whData[0].id;
-             setResolvedWarehouseId(targetWarehouseId);
+            targetWarehouseId = whData[0].id;
+            setResolvedWarehouseId(targetWarehouseId);
           } else {
-             targetWarehouseId = 'ALL';
-             setResolvedWarehouseId('ALL');
+            targetWarehouseId = 'ALL';
+            setResolvedWarehouseId('ALL');
           }
         }
       }
@@ -117,7 +117,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
           const activeBranchId = localStorage.getItem("takka_active_branch_id");
           let patchUrl = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Devices?warehouse_id=is.null`;
           if (activeBranchId && activeBranchId !== 'ALL') {
-             patchUrl += `&branch_id=eq.${activeBranchId}`;
+            patchUrl += `&branch_id=eq.${activeBranchId}`;
           }
           await fetch(patchUrl, {
             method: 'PATCH',
@@ -146,16 +146,16 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
     setError('');
     try {
       if (warehouseId === 'NONE') {
-         setDevices([]);
-         setIsLoading(false);
-         return;
+        setDevices([]);
+        setIsLoading(false);
+        return;
       }
       const token = localStorage.getItem('access_token');
       const userId = localStorage.getItem('user_id');
       const tenantId = localStorage.getItem('tenant_id') || userId;
       const activeBranchId = localStorage.getItem("takka_active_branch_id");
       let url = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/Devices?select=*,branches(name)&status=not.in.(sold,sold_installment)`;
-      
+
       if (warehouseId === 'ALL') {
         url += `&tenant_id=eq.${tenantId}`;
         if (activeBranchId && activeBranchId !== 'ALL') {
@@ -171,11 +171,11 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('فشل جلب بيانات الأجهزة');
       }
-      
+
       const data = await response.json();
       setDevices(data);
     } catch (err: any) {
@@ -197,21 +197,21 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
 
   // Apply filters
   const filteredDevices = devices.filter(device => {
-    const matchSearch = searchTerm === '' || 
+    const matchSearch = searchTerm === '' ||
       (device.model && device.model.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (device.company && device.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (device.barcode && device.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (device.imei1 && device.imei1.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (device.imei && device.imei.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (device.id && device.id.toString().includes(searchTerm));
-      
-    const matchImei = filters.imei === '' || 
+
+    const matchImei = filters.imei === '' ||
       (device.imei1 && device.imei1.includes(filters.imei)) ||
       (device.imei2 && device.imei2.includes(filters.imei));
-      
+
     const matchCompany = filters.company === '' || filters.company === 'عرض الكل' || device.company === filters.company;
     const matchCondition = filters.condition === '' || filters.condition === 'عرض الكل' || device.condition === filters.condition;
-    
+
     // Assuming status is always 'متاح' for now based on API, but we can filter if needed
     const matchStatus = filters.status === '' || filters.status === 'عرض الكل' || 'متاح' === filters.status;
 
@@ -265,7 +265,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "الأجهزة");
-    
+
     XLSX.writeFile(workbook, "devices_export.xlsx");
   };
 
@@ -312,10 +312,10 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-6" 
+      className="space-y-6"
       dir="rtl"
     >
       {/* Page Header */}
@@ -374,7 +374,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
 
       {/* Main Content Area with Sidebar */}
       <div className="flex flex-col xl:flex-row gap-6">
-        
+
         {/* Filters Sidebar */}
         <div className="w-full xl:w-80 shrink-0 space-y-4">
           <div className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-2xl p-5">
@@ -389,12 +389,12 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
                 <label className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
                   <Barcode className="w-4 h-4 text-blue-400" /> بحث IMEI
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="imei"
                   value={filters.imei}
                   onChange={handleFilterChange}
-                  placeholder="ابحث برقم IMEI..." 
+                  placeholder="ابحث برقم IMEI..."
                   className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
                 />
               </div>
@@ -405,7 +405,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
                   <LayoutGrid className="w-4 h-4 text-purple-400" /> الشركة
                 </label>
                 <div className="relative">
-                  <select 
+                  <select
                     name="company"
                     value={filters.company}
                     onChange={handleFilterChange}
@@ -431,7 +431,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
                   <Settings className="w-4 h-4 text-slate-500 dark:text-slate-400" /> حالة الجهاز
                 </label>
                 <div className="relative">
-                  <select 
+                  <select
                     name="condition"
                     value={filters.condition}
                     onChange={handleFilterChange}
@@ -453,7 +453,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
                   <Layers className="w-4 h-4 text-emerald-400" /> حالة المخزون
                 </label>
                 <div className="relative">
-                  <select 
+                  <select
                     name="status"
                     value={filters.status}
                     onChange={handleFilterChange}
@@ -476,13 +476,13 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
                 <button className="col-span-2 bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
                   <CheckCircle2 className="w-4 h-4" /> تطبيق الفلتر
                 </button>
-                <button 
+                <button
                   onClick={resetFilters}
                   className="bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-slate-200 dark:border-white/10"
                 >
                   <RotateCcw className="w-4 h-4" /> إعادة تعيين
                 </button>
-                <button 
+                <button
                   onClick={resetFilters}
                   className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-blue-500/20"
                 >
@@ -501,9 +501,9 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
             <div className="space-y-3">
               <div className="relative">
                 <Barcode className="w-4 h-4 text-slate-500 absolute top-1/2 start-3 -translate-y-1/2" />
-                <input 
-                  type="text" 
-                  placeholder="أدخل IMEI للتتبع..." 
+                <input
+                  type="text"
+                  placeholder="أدخل IMEI للتتبع..."
                   className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-2.5 ps-10 pe-4 text-sm text-slate-900 dark:text-white focus:border-purple-500 outline-none transition-all placeholder:text-slate-600"
                 />
               </div>
@@ -518,13 +518,13 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
             <button className="w-full bg-slate-800 hover:bg-slate-700 text-slate-900 dark:text-white py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-slate-200 dark:border-white/5">
               <Archive className="w-4 h-4" /> الأرشيف
             </button>
-            <button 
+            <button
               onClick={() => setIsAddDeviceModalOpen(true)}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 dark:text-white py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
             >
               <Plus className="w-5 h-5" /> إضافة جهاز جديد
             </button>
-            <button 
+            <button
               onClick={() => setIsAddMultipleModalOpen(true)}
               className="w-full bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
             >
@@ -535,29 +535,29 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
 
         {/* Table Area */}
         <div className="flex-1 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col overflow-hidden">
-          
+
           {/* Top Actions Bar */}
           <div className="p-4 border-b border-slate-200 dark:border-white/5 flex flex-wrap items-center justify-between gap-4 bg-slate-50 dark:bg-white/[0.02]">
             <div className="flex flex-wrap items-center gap-2">
-              <button 
+              <button
                 onClick={() => setIsImportModalOpen(true)}
                 className="bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
               >
                 <Upload className="w-4 h-4" /> استيراد
               </button>
-              <button 
+              <button
                 onClick={handleExport}
                 className="bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
               >
                 <Download className="w-4 h-4" /> تصدير
               </button>
-              <button 
+              <button
                 onClick={() => setIsBarcodeModalOpen(true)}
                 className="bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" /> طباعة باركود
               </button>
-              <button 
+              <button
                 onClick={() => setIsUnifyPricesModalOpen(true)}
                 disabled={selectedDevices.length < 2}
                 className="bg-teal-600 hover:bg-teal-500 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -576,9 +576,9 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
               </div>
               <div className="relative w-64">
                 <Search className="w-4 h-4 text-slate-500 absolute top-1/2 start-3 -translate-y-1/2" />
-                <input 
-                  type="text" 
-                  placeholder="بحث سريع (موديل، سعة، IMEI)..." 
+                <input
+                  type="text"
+                  placeholder="بحث سريع (موديل، سعة، IMEI)..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-[#080c13] border border-slate-200 dark:border-white/10 rounded-xl py-2 ps-10 pe-4 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
@@ -609,8 +609,8 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
               <thead className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#080c13]/50 border-b border-slate-200 dark:border-white/5">
                 <tr>
                   <th className="p-4 w-10">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={selectedDevices.length === devices.length && devices.length > 0}
                       onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#080c13] text-blue-500 focus:ring-blue-500/50 focus:ring-offset-0"
@@ -639,16 +639,16 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
                   </tr>
                 ) : (
                   paginatedDevices.map((device, index) => (
-                    <motion.tr 
+                    <motion.tr
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      key={device.id} 
+                      key={device.id}
                       className="hover:bg-slate-100 dark:hover:bg-white/10 dark:bg-white/[0.04] transition-all group relative"
                     >
                       <td className="p-4 relative z-10">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={selectedDevices.includes(device.id)}
                           onChange={() => toggleSelectDevice(device.id)}
                           className="w-4 h-4 rounded border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#080c13] text-blue-500 focus:ring-blue-500/50 focus:ring-offset-0 transition-all"
@@ -699,44 +699,44 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
                       </td>
                       <td className="p-4 relative z-10">
                         <div className="flex items-center justify-center gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                          <button 
+                          <button
                             onClick={() => setViewDevice(device)}
-                            className="p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-slate-900 dark:text-white hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] rounded-xl transition-all" 
+                            className="p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-slate-900 dark:text-white hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] rounded-xl transition-all"
                             title="عرض التفاصيل"
                           >
                             <FileText className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => setEditDevice(device)}
-                            className="p-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-slate-900 dark:text-white hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] rounded-xl transition-all" 
+                            className="p-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-slate-900 dark:text-white hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] rounded-xl transition-all"
                             title="تعديل"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => setTransferDevice(device)}
-                            className="p-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] rounded-xl transition-all" 
+                            className="p-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] rounded-xl transition-all"
                             title="تحويل"
                           >
                             <ArrowRightLeft className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => { setSelectedDevices([device.id]); setIsBarcodeModalOpen(true); }}
-                            className="p-2 bg-pink-500/10 text-pink-400 hover:bg-pink-500 hover:text-white hover:shadow-[0_0_15px_rgba(236,72,153,0.5)] rounded-xl transition-all" 
+                            className="p-2 bg-pink-500/10 text-pink-400 hover:bg-pink-500 hover:text-white hover:shadow-[0_0_15px_rgba(236,72,153,0.5)] rounded-xl transition-all"
                             title="طباعة باركود"
                           >
                             <Printer className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => setSellDevice(device)}
-                            className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 dark:text-white hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] rounded-xl transition-all" 
+                            className="p-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 dark:text-white hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] rounded-xl transition-all"
                             title="بيع"
                           >
                             <DollarSign className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => setDeleteDevice(device)}
-                            className="p-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-slate-900 dark:text-white hover:shadow-[0_0_15px_rgba(244,63,94,0.5)] rounded-xl transition-all" 
+                            className="p-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-slate-900 dark:text-white hover:shadow-[0_0_15px_rgba(244,63,94,0.5)] rounded-xl transition-all"
                             title="حذف"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -749,7 +749,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
               </tbody>
             </table>
           </div>
-          
+
           {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="p-4 border-t border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/[0.02]">
@@ -777,7 +777,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
               </div>
               <div className="flex items-center gap-2">
                 <span>عدد الصفوف:</span>
-                <select 
+                <select
                   value={itemsPerPage}
                   onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                   className="bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 outline-none text-slate-600 dark:text-slate-300"
@@ -793,9 +793,9 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
       </div>
 
       {/* Modals */}
-      <AddDeviceModal 
-        isOpen={isAddDeviceModalOpen} 
-        onClose={() => setIsAddDeviceModalOpen(false)} 
+      <AddDeviceModal
+        isOpen={isAddDeviceModalOpen}
+        onClose={() => setIsAddDeviceModalOpen(false)}
         onSuccess={() => {
           resolveAndFetch();
         }}
@@ -805,15 +805,15 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
         }}
       />
 
-      <AddMultipleDevicesModal 
-        isOpen={isAddMultipleModalOpen} 
-        onClose={() => setIsAddMultipleModalOpen(false)} 
+      <AddMultipleDevicesModal
+        isOpen={isAddMultipleModalOpen}
+        onClose={() => setIsAddMultipleModalOpen(false)}
         onSuccess={() => {
           resolveAndFetch();
         }}
       />
 
-      <ImportExcelModal 
+      <ImportExcelModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onSuccess={() => {
@@ -823,13 +823,13 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
       />
 
       {/* Action Modals */}
-      <ViewDeviceModal 
+      <ViewDeviceModal
         isOpen={!!viewDevice}
         onClose={() => setViewDevice(null)}
         device={viewDevice}
       />
 
-      <EditDeviceModal 
+      <EditDeviceModal
         isOpen={!!editDevice}
         onClose={() => setEditDevice(null)}
         onSuccess={() => {
@@ -838,7 +838,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
         device={editDevice}
       />
 
-      <DeleteDeviceModal 
+      <DeleteDeviceModal
         isOpen={!!deleteDevice}
         onClose={() => setDeleteDevice(null)}
         onSuccess={() => {
@@ -847,7 +847,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
         device={deleteDevice}
       />
 
-      <SellDeviceModal 
+      <SellDeviceModal
         isOpen={!!sellDevice}
         onClose={() => setSellDevice(null)}
         onSuccess={() => {
@@ -856,7 +856,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
         device={sellDevice}
       />
 
-      <TransferItemModal 
+      <TransferItemModal
         isOpen={!!transferDevice}
         onClose={() => setTransferDevice(null)}
         onSuccess={() => {
@@ -868,7 +868,7 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
         sourceWarehouse={warehouse || { id: resolvedWarehouseId, name: 'مخزن الأجهزة الافتراضي', type: 'devices' }}
       />
 
-      <UnifyPricesModal 
+      <UnifyPricesModal
         isOpen={isUnifyPricesModalOpen}
         onClose={() => setIsUnifyPricesModalOpen(false)}
         onSuccess={() => {
@@ -878,9 +878,9 @@ export default function Devices({ warehouse }: { warehouse?: any }) {
         selectedDevices={devices.filter(d => selectedDevices.includes(d.id))}
       />
 
-      <PrintBarcodeModal 
-        isOpen={isBarcodeModalOpen} 
-        onClose={() => setIsBarcodeModalOpen(false)} 
+      <PrintBarcodeModal
+        isOpen={isBarcodeModalOpen}
+        onClose={() => setIsBarcodeModalOpen(false)}
         autoSelectItem={(selectedDevices.length === 1 && devices.find(d => d.id === selectedDevices[0])) ? { item: devices.find(d => d.id === selectedDevices[0]), category: 'device' } : undefined}
       />
     </motion.div>

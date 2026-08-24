@@ -345,12 +345,10 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                             </div>
                           </>
                         ) : (
-                          config.showPrice && (
-                            <div className="flex justify-between w-full text-xs font-black border-b border-black/20 pb-1 mb-2 px-1">
-                              <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
-                              <span className="truncate max-w-[100px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
-                            </div>
-                          )
+                          <div className="flex justify-between w-full text-xs font-black border-b border-black/20 pb-1 mb-2 px-1">
+                            <span>{config.showPrice ? `${Number(selectedItem.final_price).toLocaleString()} L.E` : ''}</span>
+                            <span className="truncate max-w-[100px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
+                          </div>
                         )}
                         {/* Visual Barcode representation for preview only */}
                         <div className="h-10 w-full bg-[repeating-linear-gradient(90deg,#000,#000_2px,transparent_2px,transparent_4px)] opacity-80 mt-1 mb-1 relative flex items-end justify-center">
@@ -373,12 +371,10 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                       <div className="w-[80%] max-w-[250px] border border-dashed border-gray-300 flex flex-col divide-y divide-dashed divide-gray-400">
                         {/* Split x2 Preview - Top part */}
                         <div className="p-3 flex flex-col items-center">
-                          {config.showPrice && (
-                            <div className="flex justify-between w-full text-[10px] font-black border-b border-black/20 pb-0.5 mb-1 px-1">
-                              <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
-                              <span className="truncate max-w-[80px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
-                            </div>
-                          )}
+                          <div className="flex justify-between w-full text-[10px] font-black border-b border-black/20 pb-0.5 mb-1 px-1">
+                            <span>{config.showPrice ? `${Number(selectedItem.final_price).toLocaleString()} L.E` : ''}</span>
+                            <span className="truncate max-w-[80px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
+                          </div>
                           <div className="h-8 w-full bg-[repeating-linear-gradient(90deg,#000,#000_1.5px,transparent_1.5px,transparent_3px)] opacity-80 mt-0.5 mb-1 relative flex items-end justify-center">
                             <span className="bg-white px-1 text-[8px] absolute -bottom-1.5 font-mono font-bold tracking-widest">{selectedItem.unique_code || '123456789'}</span>
                           </div>
@@ -392,12 +388,10 @@ export function PrintBarcodeModal({ isOpen, onClose, autoSelectItem }: PrintBarc
                         </div>
                         {/* Split x2 Preview - Bottom part */}
                         <div className="p-3 flex flex-col items-center">
-                          {config.showPrice && (
-                            <div className="flex justify-between w-full text-[10px] font-black border-b border-black/20 pb-0.5 mb-1 px-1">
-                              <span>{Number(selectedItem.final_price).toLocaleString()} L.E</span>
-                              <span className="truncate max-w-[80px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
-                            </div>
-                          )}
+                          <div className="flex justify-between w-full text-[10px] font-black border-b border-black/20 pb-0.5 mb-1 px-1">
+                            <span>{config.showPrice ? `${Number(selectedItem.final_price).toLocaleString()} L.E` : ''}</span>
+                            <span className="truncate max-w-[80px] text-left">{settings.companyName || selectedItem.brand || 'TAKKA'}</span>
+                          </div>
                           <div className="h-8 w-full bg-[repeating-linear-gradient(90deg,#000,#000_1.5px,transparent_1.5px,transparent_3px)] opacity-80 mt-0.5 mb-1 relative flex items-end justify-center">
                             <span className="bg-white px-1 text-[8px] absolute -bottom-1.5 font-mono font-bold tracking-widest">{selectedItem.unique_code || '123456789'}</span>
                           </div>

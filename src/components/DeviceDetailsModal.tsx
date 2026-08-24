@@ -323,6 +323,8 @@ interface Device {
   ram: string;
   color: string;
   has_box: boolean;
+  activation_status?: string;
+  sim_type?: string;
   status: string;
   notes: string | null;
   tax: number;
@@ -479,9 +481,11 @@ export default function DeviceDetailsModal({ isOpen, onClose, device }: DeviceDe
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <DetailItem icon={ShieldCheck} label="الحالة" value={device.condition} colorClass="text-blue-600 dark:text-blue-400" />
                     <DetailItem icon={Box} label="العلبة" value={device.has_box ? 'مع علبة' : 'بدون علبة'} colorClass={device.has_box ? "text-emerald-600 dark:text-emerald-400" : "text-orange-600 dark:text-orange-400"} />
+                    <DetailItem icon={Smartphone} label="حالة التفعيل" value={device.activation_status || 'غير محدد'} colorClass="text-purple-600 dark:text-purple-400" />
+                    <DetailItem icon={Smartphone} label="نوع الشريحة" value={device.sim_type || 'غير محدد'} colorClass="text-cyan-600 dark:text-cyan-400" />
                   </div>
                 </div>
                 

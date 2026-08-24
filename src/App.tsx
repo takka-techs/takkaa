@@ -1781,7 +1781,7 @@ function Dashboard({
               <input
                 type="text"
                 placeholder="بحث Ctrl+K"
-                className="w-48 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-xl py-2 ps-9 pe-4 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-primary-500/50 transition-colors"
+                className="w-48 xl:w-64 focus:w-72 xl:focus:w-80 bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-xl py-2 ps-9 pe-4 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-primary-500/50 transition-all duration-300"
               />
             </div>
 

@@ -28,6 +28,36 @@ export default function ReturnPurchaseModal({ isOpen, device, onClose, onSuccess
   const [returnReason, setReturnReason] = useState('عيب مصنعي');
   const [refundMethod, setRefundMethod] = useState('cash');
   const [isLoading, setIsLoading] = useState(false);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>('');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      const fetchWallets = async () => {
+        try {
+          const token = localStorage.getItem('access_token');
+          const userId = localStorage.getItem('user_id');
+          const tenantId = localStorage.getItem('tenant_id') || userId;
+          const headers = {
+            'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+            'Authorization': `Bearer ${token}`
+          };
+          let walletsUrl = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/wallets?select=*,branches(name)&tenant_id=eq.${tenantId}`;
+          const activeBranchId = localStorage.getItem('takka_active_branch_id');
+          if (activeBranchId && activeBranchId !== 'ALL') {
+            walletsUrl += `&branch_id=eq.${activeBranchId}`;
+          }
+          const res = await fetch(walletsUrl, { headers });
+          if (res.ok) {
+            setWallets(await res.json());
+          }
+        } catch (error) {
+          console.error('Error fetching wallets:', error);
+        }
+      };
+      fetchWallets();
+    }
+  }, [isOpen]);
 
   if (!isOpen || !device) return null;
 
@@ -71,6 +101,7 @@ export default function ReturnPurchaseModal({ isOpen, device, onClose, onSuccess
             body: JSON.stringify({
               tenant_id: tId,
               branch_id: branchVal,
+              wallet_id: selectedWalletId || null,
               type: 'in',
               category: 'refund',
               amount: device.cost_price,
@@ -222,6 +253,22 @@ export default function ReturnPurchaseModal({ isOpen, device, onClose, onSuccess
                   </button>
                 ))}
               </div>
+              
+              {refundMethod === 'cash' && (
+                <div className="mt-4 p-5 bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl animate-in fade-in slide-in-from-top-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-3 uppercase tracking-widest">اختر الخزينة للإيداع *</label>
+                  <select
+                    value={selectedWalletId}
+                    onChange={(e) => setSelectedWalletId(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500 transition-colors"
+                  >
+                    <option value="">-- اختر الخزينة --</option>
+                    {wallets.map(w => (
+                      <option key={w.id} value={w.id}>{w.name} ({Number(w.balance).toLocaleString()} ج.م)</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Reason Select */}
@@ -254,7 +301,7 @@ export default function ReturnPurchaseModal({ isOpen, device, onClose, onSuccess
           <div className="p-8 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] flex gap-4">
             <button 
               onClick={handleReturn}
-              disabled={isLoading}
+              disabled={isLoading || (refundMethod === 'cash' && !selectedWalletId)}
               className="flex-[2] bg-red-600 hover:bg-red-500 text-white font-black py-5 rounded-[1.5rem] shadow-[0_10px_30px_rgba(220,38,38,0.2)] dark:shadow-[0_10px_30px_rgba(220,38,38,0.3)] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <RotateCcw className="w-6 h-6" />}

@@ -28,6 +28,7 @@ interface PrintReceiptTemplateProps {
   logo?: string;
   paymentMethod?: string;
   installmentInterestCost?: number;
+  date?: string | Date;
 }
 
 export const PrintReceiptTemplate = React.forwardRef<
@@ -47,6 +48,7 @@ export const PrintReceiptTemplate = React.forwardRef<
     cashierName,
     paymentMethod,
     installmentInterestCost,
+    date,
   } = props;
 
   const innerRef = useRef<HTMLDivElement>(null);
@@ -142,9 +144,9 @@ export const PrintReceiptTemplate = React.forwardRef<
       {/* Invoice Meta */}
       <div className="flex flex-col items-center py-1 mb-2 border-b-[2px] border-black pb-2 text-[11px] font-bold gap-1 mt-1">
         <div className="flex gap-4 text-[12px]">
-          <span>{new Date().toLocaleDateString("ar-EG")}</span>
+          <span>{(date ? new Date(date) : new Date()).toLocaleDateString("ar-EG")}</span>
           <span>
-            {new Date().toLocaleTimeString("ar-EG", {
+            {(date ? new Date(date) : new Date()).toLocaleTimeString("ar-EG", {
               hour: "2-digit",
               minute: "2-digit",
             })}

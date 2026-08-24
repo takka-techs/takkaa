@@ -27,6 +27,41 @@ export default function AddMultipleDevicesModal({
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
   const { isOwner, branches, currentBranchId } = useBranch();
 
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [sourceType, setSourceType] = useState<'none' | 'supplier' | 'client'>('none');
+  const [sourceName, setSourceName] = useState('');
+
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [paidAmount, setPaidAmount] = useState('');
+  const [selectedWalletId, setSelectedWalletId] = useState('');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      const fetchSources = async () => {
+        try {
+          const token = localStorage.getItem('access_token');
+          const headers = {
+            'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+            'Authorization': `Bearer ${token}`
+          };
+          const sRes = await fetch('https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers?select=id,name', { headers });
+          if (sRes.ok) setSuppliers(await sRes.json());
+
+          const cRes = await fetch('https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients?select=id,name', { headers });
+          if (cRes.ok) setClients(await cRes.json());
+
+          const tenantId = localStorage.getItem('tenant_id') || localStorage.getItem('user_id');
+          let walletsUrl = `https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/wallets?select=*,branches(name)&tenant_id=eq.${tenantId}`;
+          if (currentBranchId && currentBranchId !== 'ALL') walletsUrl += `&branch_id=eq.${currentBranchId}`;
+          const wRes = await fetch(walletsUrl, { headers });
+          if (wRes.ok) setWallets(await wRes.json());
+        } catch (e) { }
+      };
+      fetchSources();
+    }
+  }, [isOpen]);
+
   React.useEffect(() => {
     if (isOpen) {
       if (currentBranchId && currentBranchId !== 'ALL') {
@@ -45,6 +80,8 @@ export default function AddMultipleDevicesModal({
     ram: '',
     condition: 'مستعمل',
     has_box: true,
+    activation_status: 'غير محدد',
+    sim_type: 'غير محدد',
     cost_price: '',
     selling_price: '',
     warehouse: 'المخزن الرئيسي',
@@ -97,6 +134,18 @@ export default function AddMultipleDevicesModal({
     if (!sharedData.company || !sharedData.model || !sharedData.cost_price || !sharedData.selling_price) {
       setError('يرجى تعبئة جميع البيانات المشتركة الأساسية (الشركة، الموديل، التكلفة، سعر البيع)');
       return;
+    }
+
+    if (Number(paidAmount) > 0) {
+      if (!selectedWalletId) {
+        setError('يرجى اختيار الخزنة التي سيتم الدفع منها.');
+        return;
+      }
+      const wallet = wallets.find(w => w.id.toString() === selectedWalletId);
+      if (wallet && Number(wallet.balance) < Number(paidAmount)) {
+        setError(`رصيد الخزنة (${wallet.balance} ج.م) لا يكفي لدفع هذا المبلغ.`);
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -161,6 +210,132 @@ export default function AddMultipleDevicesModal({
         }
       }
 
+      let finalSourceName = 'إضافة متعددة';
+      const totalCost = (Number(sharedData.cost_price) || 0) * validDevices.length;
+      const paid = Number(paidAmount) || 0;
+      const debtToAdd = totalCost - paid;
+      let finalSupplierId = null;
+      let finalClientId = null;
+
+      if (sourceType === 'supplier' && sourceName.trim()) {
+        finalSourceName = sourceName.trim();
+        const existingSupplier = suppliers.find(s => s.name === finalSourceName);
+        if (!existingSupplier) {
+          const res = await fetch('https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+              'Authorization': `Bearer ${token}`,
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({ name: finalSourceName, tenant_id: tenantId, user_id: userId, initial_balance: debtToAdd })
+          });
+          if (res.ok) {
+            const newSup = await res.json();
+            if (newSup && newSup.length > 0) finalSupplierId = newSup[0].id;
+          }
+        } else {
+          finalSupplierId = existingSupplier.id;
+          if (debtToAdd !== 0) {
+            const res = await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers?id=eq.${finalSupplierId}&select=initial_balance`, {
+              headers: {
+                'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const currentBal = data[0]?.initial_balance || 0;
+              await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/suppliers?id=eq.${finalSupplierId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ initial_balance: currentBal + debtToAdd })
+              });
+            }
+          }
+        }
+      } else if (sourceType === 'client' && sourceName.trim()) {
+        finalSourceName = sourceName.trim();
+        const existingClient = clients.find(c => c.name === finalSourceName);
+        if (!existingClient) {
+          const res = await fetch('https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+              'Authorization': `Bearer ${token}`,
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({ name: finalSourceName, tenant_id: tenantId, user_id: userId, initial_balance: -debtToAdd })
+          });
+          if (res.ok) {
+            const newCli = await res.json();
+            if (newCli && newCli.length > 0) finalClientId = newCli[0].id;
+          }
+        } else {
+          finalClientId = existingClient.id;
+          if (debtToAdd !== 0) {
+            const res = await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients?id=eq.${finalClientId}&select=initial_balance`, {
+              headers: {
+                'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const currentBal = data[0]?.initial_balance || 0;
+              await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/clients?id=eq.${finalClientId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ initial_balance: currentBal - debtToAdd })
+              });
+            }
+          }
+        }
+      }
+
+      if (paid > 0 && selectedWalletId) {
+        const wallet = wallets.find(w => w.id.toString() === selectedWalletId);
+        if (wallet) {
+          await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/wallets?id=eq.${selectedWalletId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ balance: Number(wallet.balance || 0) - paid })
+          });
+        }
+        await fetch(`https://hoohxkrrndtfpwsrnpyr.supabase.co/rest/v1/treasury_transactions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'sb_publishable_83FGyADwb-SAJtS27eYWZA_1eNNUrwa',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            wallet_id: Number(selectedWalletId),
+            user_id: userId,
+            type: 'out',
+            amount: paid,
+            category: sourceType === 'client' ? 'مشتريات من عميل' : (sourceType === 'supplier' ? 'سداد دفعة للمورد' : 'مشتريات أجهزة'),
+            description: `سداد قيمة ${validDevices.length} أجهزة (إضافة متعددة) ${sourceType !== 'none' ? '- ' + finalSourceName : ''}`,
+            branch_id: targetBranchId,
+            tenant_id: tenantId
+          })
+        });
+      }
+
       const payload = validDevices.map(dev => ({
         company: sharedData.company,
         model: sharedData.model,
@@ -169,7 +344,9 @@ export default function AddMultipleDevicesModal({
         color: dev.color,
         condition: sharedData.condition,
         has_box: sharedData.has_box.toString() === 'true',
-        source: 'إضافة متعددة',
+        activation_status: sharedData.activation_status,
+        sim_type: sharedData.sim_type,
+        source: finalSourceName,
         imei1: dev.imei1,
         imei2: dev.imei2 || null,
         cost_price: Number(sharedData.cost_price) || 0,
@@ -292,15 +469,31 @@ export default function AddMultipleDevicesModal({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">الشركة</label>
-                  <select
-                    name="company" value={sharedData.company} onChange={handleSharedChange}
+                  <input
+                    type="text"
+                    list="companies-list"
+                    name="company"
+                    value={sharedData.company}
+                    onChange={handleSharedChange}
+                    placeholder="اختر أو اكتب اسم الشركة"
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
-                  >
-                    <option value="">-- اختر --</option>
-                    <option value="Apple">Apple</option>
-                    <option value="Samsung">Samsung</option>
-                    <option value="Oppo">Oppo</option>
-                  </select>
+                  />
+                  <datalist id="companies-list">
+                    <option value="Apple" />
+                    <option value="Samsung" />
+                    <option value="Oppo" />
+                    <option value="Xiaomi" />
+                    <option value="Realme" />
+                    <option value="Vivo" />
+                    <option value="Huawei" />
+                    <option value="Honor" />
+                    <option value="Infinix" />
+                    <option value="Tecno" />
+                    <option value="Nokia" />
+                    <option value="Motorola" />
+                    <option value="OnePlus" />
+                    <option value="Google" />
+                  </datalist>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">الموديل</label>
@@ -317,6 +510,8 @@ export default function AddMultipleDevicesModal({
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   >
                     <option value="">-- اختر --</option>
+                    <option value="16GB">16GB</option>
+                    <option value="32GB">32GB</option>
                     <option value="64GB">64GB</option>
                     <option value="128GB">128GB</option>
                     <option value="256GB">256GB</option>
@@ -331,7 +526,11 @@ export default function AddMultipleDevicesModal({
                     className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   >
                     <option value="">-- اختر --</option>
+                    <option value="1GB">1GB</option>
+                    <option value="2GB">2GB</option>
+                    <option value="3GB">3GB</option>
                     <option value="4GB">4GB</option>
+                    <option value="6GB">6GB</option>
                     <option value="8GB">8GB</option>
                     <option value="12GB">12GB</option>
                     <option value="16GB">16GB</option>
@@ -364,6 +563,30 @@ export default function AddMultipleDevicesModal({
                   </select>
                 </div>
                 <div className="space-y-2">
+                  <label className="text-xs text-slate-500 dark:text-slate-400">حالة التفعيل</label>
+                  <select
+                    name="activation_status" value={sharedData.activation_status} onChange={handleSharedChange}
+                    className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
+                  >
+                    <option value="غير محدد">غير محدد</option>
+                    <option value="أكتف">أكتف</option>
+                    <option value="نو أكتف">نو أكتف</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-slate-500 dark:text-slate-400">نوع الشريحة</label>
+                  <select
+                    name="sim_type" value={sharedData.sim_type} onChange={handleSharedChange}
+                    className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
+                  >
+                    <option value="غير محدد">غير محدد</option>
+                    <option value="Physical SIM">Physical SIM</option>
+                    <option value="eSIM">eSIM</option>
+                    <option value="Dual SIM">Dual SIM</option>
+                    <option value="Physical + eSIM">Physical + eSIM</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
                   <label className="text-xs text-slate-500 dark:text-slate-400">سعر الشراء</label>
                   <input
                     type="number" name="cost_price" value={sharedData.cost_price} onChange={handleSharedChange}
@@ -381,16 +604,83 @@ export default function AddMultipleDevicesModal({
                 </div>
               </div>
 
-              <div className="mt-4 w-full md:w-1/4">
-                <label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">المخزن</label>
-                <select
-                  name="warehouse" value={sharedData.warehouse} onChange={handleSharedChange}
-                  className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
-                >
-                  <option value="المخزن الرئيسي">المخزن الرئيسي</option>
-                  <option value="فرع 1">فرع 1</option>
-                </select>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs text-slate-500 dark:text-slate-400">المخزن</label>
+                  <select
+                    name="warehouse" value={sharedData.warehouse} onChange={handleSharedChange}
+                    className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
+                  >
+                    <option value="المخزن الرئيسي">المخزن الرئيسي</option>
+                    <option value="فرع 1">فرع 1</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs text-slate-500 dark:text-slate-400">نوع المصدر (مورد / عميل)</label>
+                  <select
+                    value={sourceType} onChange={(e) => setSourceType(e.target.value as any)}
+                    className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
+                  >
+                    <option value="none">بدون (إضافة متعددة)</option>
+                    <option value="supplier">مورد</option>
+                    <option value="client">عميل</option>
+                  </select>
+                </div>
+
+                {sourceType !== 'none' && (
+                  <div className="space-y-2">
+                    <label className="text-xs text-slate-500 dark:text-slate-400">
+                      اسم {sourceType === 'supplier' ? 'المورد' : 'العميل'}
+                    </label>
+                    <input
+                      type="text"
+                      list="source-names"
+                      value={sourceName}
+                      onChange={(e) => setSourceName(e.target.value)}
+                      placeholder={`اختر أو اكتب اسم ${sourceType === 'supplier' ? 'المورد' : 'العميل'}...`}
+                      className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
+                    />
+                    <datalist id="source-names">
+                      {(sourceType === 'supplier' ? suppliers : clients).map(item => (
+                        <option key={item.id} value={item.name} />
+                      ))}
+                    </datalist>
+                  </div>
+                )}
               </div>
+
+              {sourceType !== 'none' && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 dark:border-white/10 pt-4">
+                  <div className="space-y-2">
+                    <label className="text-xs text-slate-500 dark:text-slate-400">المبلغ المدفوع الآن (اختياري)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={paidAmount}
+                      onChange={(e) => setPaidAmount(e.target.value)}
+                      placeholder="المبلغ المدفوع"
+                      className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  {Number(paidAmount) > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-xs text-slate-500 dark:text-slate-400">خصم من الخزنة *</label>
+                      <select
+                        value={selectedWalletId}
+                        onChange={(e) => setSelectedWalletId(e.target.value)}
+                        className="w-full bg-white dark:bg-[#11151c] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none"
+                      >
+                        <option value="">اختر الخزنة...</option>
+                        {wallets.map(w => (
+                          <option key={w.id} value={w.id}>{w.name} ({w.balance} ج.م)</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Devices List Section */}
